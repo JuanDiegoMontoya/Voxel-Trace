@@ -251,12 +251,12 @@
     <ClCompile Include="pick.cpp">
       <Filter>CA</Filter>
     </ClCompile>
-    <ClCompile Include="Voxtrace.cu">
-      <Filter>CA</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="PipeWater.cu">
+      <Filter>CA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Voxtrace.cu">
       <Filter>CA</Filter>
     </CudaCompile>
   </ItemGroup>

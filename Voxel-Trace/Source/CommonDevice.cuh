@@ -52,3 +52,13 @@ __device__ __host__ void swap(T& a, T& b)
 	a = std::move(b);
 	b = std::move(tmp);
 }
+
+inline __device__ __host__ int flatten(glm::ivec2 coord, int X)
+{
+	return coord.x + coord.y * X;
+}
+
+inline __device__ __host__ glm::ivec2 expand(unsigned index, int X)
+{
+	return { index / X, index % X };
+}

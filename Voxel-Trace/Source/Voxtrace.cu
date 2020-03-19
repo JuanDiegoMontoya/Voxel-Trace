@@ -15,6 +15,30 @@
 #include "CommonDevice.cuh"
 #include "cuda_gl_interop.h"
 
+surface<void, 2> screenSurface;
+
+__global__ static void epicRayTracer(PerspectiveRayCamera cam, 
+	glm::vec3 chunkDim, glm::vec2 imgSize)
+{
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+	int n = imgSize.x * imgSize.y;
+
+	printf("index = %d, stride = %d, n = %d\n", index, stride, n);
+	for (int i = index; i < n; i += stride)
+	{
+		glm::vec2 imgPos = expand(i, imgSize.x);
+		glm::vec2 screenCoord(
+			(2.0f * imgPos.x) / imgSize.x - 1.0f,
+			(-2.0f * imgPos.y) / imgSize.y + 1.0f);
+		//Ray ray = cam.makeRay(screenCoord);
+		float3 val = { 1, 1, 1 };
+		surf2Dwrite(val, screenSurface,
+			imgPos.x * sizeof(float3), imgPos.y);
+		//printf("i = %d, imgpos = %f, %f\n", i, imgPos.x, imgPos.y);
+	}
+}
+
 namespace Voxels
 {
 	namespace
@@ -28,7 +52,7 @@ namespace Voxels
 		int numBlocks = chunkDim.x * chunkDim.y * chunkDim.z;
 
 		// screen info
-		glm::vec2 screenDim = { 100, 200 };
+		glm::vec2 screenDim = { 20, 10 };
 		
 		// rendering shiz
 		VBO* vbo = nullptr;
@@ -71,8 +95,8 @@ namespace Voxels
 		// generate screen texture memory
 		glGenTextures(1, &screenTexture);
 		glBindTexture(GL_TEXTURE_2D, screenTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 
-			screenDim.x, screenDim.y, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 
+			screenDim.x, screenDim.y, 0, GL_RGB, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -80,8 +104,8 @@ namespace Voxels
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// init texture color
-		glm::vec4 defColor(0, 1, 1, 1); // cyan
-		glClearTexImage(screenTexture, 0, GL_RGBA, GL_FLOAT, &defColor[0]);
+		glm::vec3 defColor(0, 1, 0); // cyan
+		glClearTexImage(screenTexture, 0, GL_RGB, GL_FLOAT, &defColor[0]);
 
 		// register the texture as a cuda resource
 		cudaCheck(cudaGraphicsGLRegisterImage(&imageResource, screenTexture,
@@ -107,12 +131,27 @@ namespace Voxels
 			lines->Draw();
 		}
 
+		// ray trace her
+		if (1)
+		{
+			cudaCheck(cudaGraphicsMapResources(1, &imageResource, 0));
+			cudaCheck(cudaGraphicsSubResourceGetMappedArray(&arr, imageResource, 0, 0));
+			cudaCheck(cudaBindSurfaceToArray(screenSurface, arr));
+
+			printf("screenDim = %f, %f\n", 
+				screenDim.x, screenDim.y);
+			epicRayTracer<<<1, 1>>>(cam, chunkDim, screenDim);
+			cudaDeviceSynchronize();
+
+			cudaCheck(cudaGraphicsUnmapResources(1, &imageResource, 0));
+		}
+
 		// draw fullscreen quad
 		ShaderPtr s = Shader::shaders["fullscreen"];
 		s->Use();
-		s->setInt("tex", 0);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, screenTexture);
+		s->setInt("tex", 0);
 		vao->Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		vao->Unbind();
@@ -125,7 +164,7 @@ namespace Voxels
 
 		std::vector<glm::vec3> poss, dirs, tClrs, bClrs;
 
-		glm::vec2 imgSize(19, 11);
+		glm::vec2 imgSize(screenDim);
 		for (int x = 0; x < imgSize.x; x++)
 		{
 			for (int y = 0; y < imgSize.y; y++)
@@ -148,6 +187,3 @@ namespace Voxels
 		lines = new LinePool(poss, dirs, tClrs, bClrs);
 	}
 }
-
-
-surface<void, 2> screenSurface;

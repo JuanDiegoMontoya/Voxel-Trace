@@ -15,7 +15,7 @@
 #include "CommonDevice.cuh"
 #include "cuda_gl_interop.h"
 
-static surface<void, 2> screenSurface;
+surface<void, 2> screenSurface;
 
 __global__ static void epicRayTracer(PerspectiveRayCamera cam, 
 	glm::vec3 chunkDim, glm::vec2 imgSize)
@@ -27,17 +27,24 @@ __global__ static void epicRayTracer(PerspectiveRayCamera cam,
 	//printf("index = %d, stride = %d, n = %d\n", index, stride, n);
 	for (int i = index; i < n; i += stride)
 	{
-		glm::vec2 imgPos = expand(i, imgSize.x);
+		glm::vec2 imgPos = expand(i, imgSize.y);
 		glm::vec2 screenCoord(
 			(2.0f * imgPos.x) / imgSize.x - 1.0f,
 			(-2.0f * imgPos.y) / imgSize.y + 1.0f);
 		//Ray ray = cam.makeRay(screenCoord);
-		float3 val = make_float3(0, 0, 0);
-		surf2Dread(&val, screenSurface, imgPos.x * sizeof(float3), imgPos.y);
-		val.x *= .95f;
-		surf2Dwrite(val, screenSurface,
-			imgPos.x * sizeof(float3), imgPos.y);
-		//printf("i = %d, imgpos = %f, %f\n", i, imgPos.x, imgPos.y);
+		glm::vec3 val(2);
+		surf2Dread(&val.r, screenSurface, imgPos.x * sizeof(glm::vec3) + 0, imgPos.y);
+		surf2Dread(&val.g, screenSurface, imgPos.x * sizeof(glm::vec3) + 4, imgPos.y);
+		surf2Dread(&val.b, screenSurface, imgPos.x * sizeof(glm::vec3) + 8, imgPos.y);
+		val *= .99f;
+		surf2Dwrite(val.r, screenSurface, imgPos.x * sizeof(glm::vec3) + 0, imgPos.y);
+		surf2Dwrite(val.g, screenSurface, imgPos.x * sizeof(glm::vec3) + 4, imgPos.y);
+		surf2Dwrite(val.b, screenSurface, imgPos.x * sizeof(glm::vec3) + 8, imgPos.y);
+		if (i == n - 1)
+		{
+			printf("val = %f, %f, %f\n", val.x, val.y, val.z);
+			printf("i = %d, imgpos = %f, %f\n", i, imgPos.x, imgPos.y);
+		}
 	}
 }
 
@@ -106,7 +113,7 @@ namespace Voxels
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// init texture color
-		glm::vec3 defColor(0, 1, 0);
+		glm::vec3 defColor(1, 1, 1);
 		glClearTexImage(screenTexture, 0, GL_RGB, GL_FLOAT, &defColor[0]);
 
 		// register the texture as a cuda resource
@@ -119,7 +126,7 @@ namespace Voxels
 	{
 		auto c = Renderer::GetPipeline()->GetCamera(0);
 		cam = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
-			glm::vec3(0, 1, 0), glm::radians(30.f), 1920.f / 1080.f);
+			glm::vec3(0, 1, 0), glm::radians(30.f), screenDim.x / screenDim.y);
 		
 		if (lines)
 		{
@@ -141,8 +148,7 @@ namespace Voxels
 			cudaCheck(cudaGraphicsSubResourceGetMappedArray(&arr, imageResource, 0, 0));
 			cudaCheck(cudaBindSurfaceToArray(screenSurface, arr));
 
-			printf("screenDim = %f, %f\n", 
-				screenDim.x, screenDim.y);
+			//printf("screenDim = %f, %f\n", screenDim.x, screenDim.y);
 			epicRayTracer<<<1, 1>>>(cam, chunkDim, screenDim);
 			cudaDeviceSynchronize();
 

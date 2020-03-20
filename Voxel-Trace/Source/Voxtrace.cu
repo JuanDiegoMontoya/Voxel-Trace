@@ -15,7 +15,7 @@
 #include "CommonDevice.cuh"
 #include "cuda_gl_interop.h"
 
-surface<void, 2> screenSurface;
+static surface<void, 2> screenSurface;
 
 __global__ static void epicRayTracer(PerspectiveRayCamera cam, 
 	glm::vec3 chunkDim, glm::vec2 imgSize)
@@ -24,7 +24,7 @@ __global__ static void epicRayTracer(PerspectiveRayCamera cam,
 	int stride = blockDim.x * gridDim.x;
 	int n = imgSize.x * imgSize.y;
 
-	printf("index = %d, stride = %d, n = %d\n", index, stride, n);
+	//printf("index = %d, stride = %d, n = %d\n", index, stride, n);
 	for (int i = index; i < n; i += stride)
 	{
 		glm::vec2 imgPos = expand(i, imgSize.x);
@@ -32,7 +32,9 @@ __global__ static void epicRayTracer(PerspectiveRayCamera cam,
 			(2.0f * imgPos.x) / imgSize.x - 1.0f,
 			(-2.0f * imgPos.y) / imgSize.y + 1.0f);
 		//Ray ray = cam.makeRay(screenCoord);
-		float3 val = { 1, 1, 1 };
+		float3 val = make_float3(0, 0, 0);
+		surf2Dread(&val, screenSurface, imgPos.x * sizeof(float3), imgPos.y);
+		val.x *= .95f;
 		surf2Dwrite(val, screenSurface,
 			imgPos.x * sizeof(float3), imgPos.y);
 		//printf("i = %d, imgpos = %f, %f\n", i, imgPos.x, imgPos.y);
@@ -52,7 +54,7 @@ namespace Voxels
 		int numBlocks = chunkDim.x * chunkDim.y * chunkDim.z;
 
 		// screen info
-		glm::vec2 screenDim = { 20, 10 };
+		glm::vec2 screenDim = { 200, 100 };
 		
 		// rendering shiz
 		VBO* vbo = nullptr;
@@ -60,8 +62,8 @@ namespace Voxels
 		GLuint screenTexture = -1;
 
 		// cuda GL stuff
-		cudaGraphicsResource* imageResource;
-		cudaArray* arr;
+		cudaGraphicsResource* imageResource = nullptr;
+		cudaArray* arr = nullptr;
 	}
 
 	void Init()
@@ -104,11 +106,12 @@ namespace Voxels
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// init texture color
-		glm::vec3 defColor(0, 1, 0); // cyan
+		glm::vec3 defColor(0, 1, 0);
 		glClearTexImage(screenTexture, 0, GL_RGB, GL_FLOAT, &defColor[0]);
 
 		// register the texture as a cuda resource
-		cudaCheck(cudaGraphicsGLRegisterImage(&imageResource, screenTexture,
+		cudaCheck(
+			cudaGraphicsGLRegisterImage(&imageResource, screenTexture,
 			GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore));
 	}
 

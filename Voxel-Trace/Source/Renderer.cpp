@@ -125,7 +125,7 @@ namespace Renderer
 		pipeline.ClearColor = { 0, .2, .4 };
 
 		initCubeMap();
-		automaton->Init();
+		//automaton->Init();
 
 		Engine::PushRenderCallback(DrawAll, 0);
 		Engine::PushUpdateCallback(Update, 0);
@@ -168,7 +168,7 @@ namespace Renderer
 
 			if (timeCount > updateFrequency)
 			{
-				automaton->Update();
+				//automaton->Update();
 				timeCount = 0;
 			}
 		}
@@ -198,7 +198,7 @@ namespace Renderer
 
 		drawCubeMap();
 
-		automaton->Render();
+		//automaton->Render();
 
 		drawAxisIndicators();
 

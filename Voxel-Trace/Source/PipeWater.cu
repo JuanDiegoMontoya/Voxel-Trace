@@ -20,7 +20,7 @@ template class PipeWater<500, 1, 500>;
 template class PipeWater<2000, 1, 2000>;
 
 // texture storing the depth information
-surface<void, 2> surfRef;
+static surface<void, 2> surfRef;
 
 /*################################################################
 ##################################################################

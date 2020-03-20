@@ -309,6 +309,9 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClCompile Include="settings.cpp" />
     <ClCompile Include="Interface.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <CudaCompile Include="testCU.cu">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
     <ClCompile Include="vendor\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"stdafx.h"</PrecompiledHeaderFile>
@@ -403,6 +406,7 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClInclude Include="Interface.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="testCU.h" />
     <ClInclude Include="vendor\ctpl_stl.h" />
     <ClInclude Include="vendor\helper_cuda.h" />
     <ClInclude Include="vendor\helper_string.h" />

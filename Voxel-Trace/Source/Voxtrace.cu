@@ -25,25 +25,24 @@ __global__ static void epicRayTracer(PerspectiveRayCamera cam,
 	int n = imgSize.x * imgSize.y;
 
 	//printf("index = %d, stride = %d, n = %d\n", index, stride, n);
-	for (int i = index; i < n; i += stride)
+	//for (int i = index; i < n; i += stride)
+	for (int x = 0; x < imgSize.x; x++)
 	{
-		glm::vec2 imgPos = expand(i, imgSize.y);
-		glm::vec2 screenCoord(
-			(2.0f * imgPos.x) / imgSize.x - 1.0f,
-			(-2.0f * imgPos.y) / imgSize.y + 1.0f);
-		//Ray ray = cam.makeRay(screenCoord);
-		glm::vec3 val(2);
-		surf2Dread(&val.r, screenSurface, imgPos.x * sizeof(glm::vec3) + 0, imgPos.y);
-		surf2Dread(&val.g, screenSurface, imgPos.x * sizeof(glm::vec3) + 4, imgPos.y);
-		surf2Dread(&val.b, screenSurface, imgPos.x * sizeof(glm::vec3) + 8, imgPos.y);
-		val *= .99f;
-		surf2Dwrite(val.r, screenSurface, imgPos.x * sizeof(glm::vec3) + 0, imgPos.y);
-		surf2Dwrite(val.g, screenSurface, imgPos.x * sizeof(glm::vec3) + 4, imgPos.y);
-		surf2Dwrite(val.b, screenSurface, imgPos.x * sizeof(glm::vec3) + 8, imgPos.y);
-		if (i == n - 1)
+		for (int y = 0; y < imgSize.y; y++)
 		{
-			printf("val = %f, %f, %f\n", val.x, val.y, val.z);
-			printf("i = %d, imgpos = %f, %f\n", i, imgPos.x, imgPos.y);
+			//glm::vec2 imgPos = expand(i, imgSize.y);
+			glm::vec2 imgPos(x, y);
+			glm::vec2 screenCoord(
+				(2.0f * imgPos.x) / imgSize.x - 1.0f,
+				(-2.0f * imgPos.y) / imgSize.y + 1.0f);
+			//Ray ray = cam.makeRay(screenCoord);
+			glm::vec4 val (1, 1, 1, 1);
+			surf2Dread(&val, screenSurface, imgPos.x * sizeof(val), imgPos.y);
+			val.r *= .99;// glm::fract(glm::sin(glm::dot(imgPos, glm::vec2(12.9898, 78.233))) * 43758.5453);
+			val.g = glm::fract(glm::sin(glm::dot(imgPos, glm::vec2(12.9898, 78.233))) * 43758.5453);
+			val.b = 1;
+			//val = glm::pow(val, glm::vec3(2.2f));
+			surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgPos.y);
 		}
 	}
 }
@@ -61,7 +60,7 @@ namespace Voxels
 		int numBlocks = chunkDim.x * chunkDim.y * chunkDim.z;
 
 		// screen info
-		glm::vec2 screenDim = { 200, 100 };
+		glm::vec2 screenDim = { 3, 3 };
 		
 		// rendering shiz
 		VBO* vbo = nullptr;
@@ -82,21 +81,20 @@ namespace Voxels
 	void InitGLStuff()
 	{
 		// TODO: move this to Vertices.h or something
-		std::vector<glm::vec2> screenTexCoords =
+		float quadVertices[] =
 		{
-			{-1,-1 }, { 0, 0 },
-			{ 1,-1 }, { 1, 0 },
-			{ 1, 1 }, { 1, 1 },
-			{-1,-1 }, { 0, 0 },
-			{ 1, 1 }, { 1, 1 },
-			{-1, 1 }, { 0, 1 },
+			// positions        // texture Coords
+			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
 		};
 
 		// setup screen texture pointers
-		vbo = new VBO(&screenTexCoords[0], 
-			screenTexCoords.size() * sizeof(glm::vec2), GL_STATIC_DRAW);
+		vbo = new VBO(&quadVertices[0],
+			sizeof(quadVertices), GL_STATIC_DRAW);
 		VBOlayout layout;
-		layout.Push<float>(2); // pos
+		layout.Push<float>(3); // pos
 		layout.Push<float>(2); // texcoord
 		vao = new VAO();
 		vao->AddBuffer(*vbo, layout);
@@ -104,17 +102,18 @@ namespace Voxels
 		// generate screen texture memory
 		glGenTextures(1, &screenTexture);
 		glBindTexture(GL_TEXTURE_2D, screenTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 
-			screenDim.x, screenDim.y, 0, GL_RGB, GL_FLOAT, NULL);
+		// cuda behavior becomes extremely weird when using RGB textures with it
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 
+			screenDim.x, screenDim.y, 0, GL_RGBA, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// init texture color
-		glm::vec3 defColor(1, 1, 1);
-		glClearTexImage(screenTexture, 0, GL_RGB, GL_FLOAT, &defColor[0]);
+		glm::vec4 defColor(1, .1, .1, 1.);
+		glClearTexImage(screenTexture, 0, GL_RGBA, GL_FLOAT, &defColor[0]);
 
 		// register the texture as a cuda resource
 		cudaCheck(
@@ -124,6 +123,10 @@ namespace Voxels
 
 	void Render()
 	{
+		//return;
+
+
+
 		auto c = Renderer::GetPipeline()->GetCamera(0);
 		cam = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
 			glm::vec3(0, 1, 0), glm::radians(30.f), screenDim.x / screenDim.y);
@@ -162,7 +165,7 @@ namespace Voxels
 		glBindTexture(GL_TEXTURE_2D, screenTexture);
 		s->setInt("tex", 0);
 		vao->Bind();
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		vao->Unbind();
 		s->Unuse();
 	}

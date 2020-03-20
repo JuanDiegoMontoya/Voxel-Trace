@@ -15,6 +15,8 @@
 #include "PipeWater.h"
 #include "Renderer.h"
 
+#include "testCU.h"
+
 // initializes the gBuffer and its attached textures
 namespace Renderer
 {
@@ -129,6 +131,8 @@ namespace Renderer
 
 		Engine::PushRenderCallback(DrawAll, 0);
 		Engine::PushUpdateCallback(Update, 0);
+
+		InitTestCUDA();
 	}
 
 
@@ -199,6 +203,7 @@ namespace Renderer
 		drawCubeMap();
 
 		//automaton->Render();
+		//RenderTestCUDA();
 
 		drawAxisIndicators();
 

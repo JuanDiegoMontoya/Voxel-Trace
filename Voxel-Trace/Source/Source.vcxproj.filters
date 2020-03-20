@@ -158,6 +158,9 @@
     <ClInclude Include="pick.h">
       <Filter>CA</Filter>
     </ClInclude>
+    <ClInclude Include="testCU.h">
+      <Filter>CA</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vendor\imgui\imgui.cpp">
@@ -257,6 +260,9 @@
       <Filter>CA</Filter>
     </CudaCompile>
     <CudaCompile Include="Voxtrace.cu">
+      <Filter>CA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="testCU.cu">
       <Filter>CA</Filter>
     </CudaCompile>
   </ItemGroup>

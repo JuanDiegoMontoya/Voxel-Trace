@@ -7,13 +7,17 @@
 //	glm::vec3 origin, glm::vec3 direction, float radius,
 //	bool callback(glm::vec3, Voxels::Block*, glm::vec3));
 
+#ifdef __CUDACC__
 __device__
+#endif
 float mod(float value, float modulus)
 {
 	return fmod((fmod(value, modulus)) + modulus, modulus);
 }
 
+#ifdef __CUDACC__
 __device__
+#endif
 float intbound(float s, float ds)
 {
 	// Find the smallest positive t such that s+t*ds is an integer.
@@ -29,13 +33,17 @@ float intbound(float s, float ds)
 	}
 }
 
+#ifdef __CUDACC__
 __device__
+#endif
 glm::vec3 intbound(glm::vec3 s, glm::vec3 ds)
 {
 	return { intbound(s.x, ds.x), intbound(s.y, ds.y), intbound(s.z, ds.z) };
 }
 
+#ifdef __CUDACC__
 __device__
+#endif
 int signum(float x)
 {
 	return x > 0 ? 1 : x < 0 ? -1 : 0;
@@ -52,7 +60,9 @@ int signum(float x)
  * If the callback returns a true value, the traversal will be stopped.
  */
 template<typename CALLBACK>
+#ifdef __CUDACC__
 __device__
+#endif
 void raycast(Voxels::Block* pWorld, glm::ivec3 worldDim,
 	glm::vec3 origin, glm::vec3 direction,
 	float radius,
@@ -136,5 +146,48 @@ void raycast(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				face.z = float(-step.z);
 			}
 		}
+	}
+}
+
+template<typename CALLBACK> 
+#ifdef __CUDACC__
+__device__
+#endif
+// modified from https://www.shadertoy.com/view/4dX3zl#
+void raycastBranchless(Voxels::Block* pWorld, glm::ivec3 worldDim,
+	glm::vec3 origin, glm::vec3 direction,
+	float radius, CALLBACK callback)
+{
+	auto rayPos = origin;
+	auto rayDir = direction;
+	glm::ivec3 mapPos = glm::ivec3(glm::floor(rayPos + 0.f));
+	glm::vec3 deltaDist = glm::abs(glm::vec3(glm::length(rayDir)) / rayDir);
+	glm::ivec3 rayStep = glm::ivec3(sign(rayDir));
+	glm::vec3 sideDist = (glm::sign(rayDir) * (glm::vec3(mapPos) - rayPos) + 
+		(glm::sign(rayDir) * 0.5f) + 0.5f) * deltaDist;
+	glm::bvec3 mask;
+	glm::vec3 norm(0);
+
+	for (int i = 0; i < radius; i++)
+	{
+		Voxels::Block* block;
+		if (glm::any(glm::lessThan(mapPos, glm::ivec3(0, 0, 0))) ||
+			glm::any(glm::greaterThanEqual(mapPos, worldDim)))
+			block = nullptr;
+		else
+			block = &pWorld[flatten(mapPos, worldDim.x, worldDim.y)];
+		//if (getVoxel(mapPos))
+			//continue;
+		if (callback(mapPos, block, norm))
+			break;
+
+		glm::vec3 a(sideDist);
+		glm::vec3 b(sideDist.y, sideDist.z, sideDist.x);
+		glm::vec3 c(sideDist.z, sideDist.x, sideDist.y);
+		mask = glm::lessThanEqual(a, glm::min(b, c));
+
+		sideDist += glm::vec3(mask) * deltaDist;
+		mapPos += norm = glm::ivec3(glm::vec3(mask)) * rayStep;
+		norm *= -1; // norm is opposite of step
 	}
 }

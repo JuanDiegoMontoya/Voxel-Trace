@@ -68,13 +68,7 @@
       <Filter>vendor\ctpl</Filter>
     </ClInclude>
     <ClInclude Include="settings.h" />
-    <ClInclude Include="CellularAutomata.h">
-      <Filter>CA</Filter>
-    </ClInclude>
     <ClInclude Include="CommonDevice.cuh">
-      <Filter>CA</Filter>
-    </ClInclude>
-    <ClInclude Include="PipeWater.h">
       <Filter>CA</Filter>
     </ClInclude>
     <ClInclude Include="vendor\helper_cuda.h">
@@ -182,9 +176,6 @@
       <Filter>vendor</Filter>
     </ClCompile>
     <ClCompile Include="settings.cpp" />
-    <ClCompile Include="CellularAutomata.cpp">
-      <Filter>CA</Filter>
-    </ClCompile>
     <ClCompile Include="Interface.cpp">
       <Filter>Game</Filter>
     </ClCompile>
@@ -253,9 +244,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="PipeWater.cu">
-      <Filter>CA</Filter>
-    </CudaCompile>
     <CudaCompile Include="Voxtrace.cu">
       <Filter>CA</Filter>
     </CudaCompile>

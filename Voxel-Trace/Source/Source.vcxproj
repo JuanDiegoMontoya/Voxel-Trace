@@ -228,9 +228,6 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CellularAutomata.cpp">
-      <FileType>CppCode</FileType>
-    </ClCompile>
     <ClCompile Include="Engine\Source\camera.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../../stdafx.h</PrecompiledHeaderFile>
@@ -379,7 +376,6 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CellularAutomata.h" />
     <ClInclude Include="CommonDevice.cuh" />
     <ClInclude Include="Engine\Source\camera.h" />
     <ClInclude Include="Engine\Source\debug.h" />
@@ -402,7 +398,6 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClInclude Include="Engine\Source\vbo.h" />
     <ClInclude Include="Engine\Source\vbo_layout.h" />
     <ClInclude Include="pick.h" />
-    <ClInclude Include="PipeWater.h" />
     <ClInclude Include="RayCamera.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="Interface.h" />
@@ -424,9 +419,6 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClInclude Include="vendor\imgui\stb_textedit.h" />
     <ClInclude Include="vendor\imgui\stb_truetype.h" />
     <ClInclude Include="Voxtrace.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="PipeWater.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

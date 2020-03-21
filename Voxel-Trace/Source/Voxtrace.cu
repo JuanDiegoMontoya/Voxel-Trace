@@ -22,12 +22,13 @@ __device__ static bool swagCallback(glm::vec3 p, Voxels::Block* block, glm::vec3
 {
 	if (block)
 	{
+		//printf("hit pos: %.0f, %.0f, %.0f\n", p.x, p.y, p.z);
 		return true;
 	}
 	return false;
 }
 
-__global__ static void epicRayTracer(Voxels::Block* pWorld, glm::vec3 worldDim,
+__global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 	PerspectiveRayCamera cam, 
 	glm::vec3 chunkDim, glm::vec2 imgSize, float time)
 {
@@ -46,10 +47,24 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::vec3 worldDim,
 		Ray ray = cam.makeRay(screenCoord);
 		glm::vec4 val = glm::vec4(ray.direction * .5f + glm::vec3(1), 1);
 
-		raycast(pWorld, worldDim, ray.origin, ray.direction, 50.f, swagCallback);
+		val = { 1, 1, 1, 1 };
+		auto cb = [&val](glm::vec3 p, Voxels::Block* block, glm::vec3 norm)->bool
+		{
+			if (block)
+			{
+				if (block->alpha == 0)
+					return false;
+				//printf("hit pos: %.0f, %.0f, %.0f\n", p.x, p.y, p.z);
+				val = glm::vec4(block->diffuse, 1.f);
+				return true;
+			}
+			return false;
+		};
+
+		raycast(pWorld, worldDim, ray.origin, ray.direction, 50.f, cb);
 
 		// write final pixel value
-		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgPos.y);
+		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgSize.y - imgPos.y - 1);
 	}
 }
 
@@ -62,11 +77,11 @@ namespace Voxels
 
 		// world description
 		Block* blocks = nullptr;
-		glm::vec3 chunkDim = { 10, 10, 10 };
+		glm::ivec3 chunkDim = { 10, 10, 10 };
 		int numBlocks = chunkDim.x * chunkDim.y * chunkDim.z;
 
 		// screen info
-		glm::vec2 screenDim = { 20, 10 };
+		glm::vec2 screenDim = { 500, 300 };
 		
 		// rendering shiz
 		VBO* vbo = nullptr;
@@ -83,7 +98,7 @@ namespace Voxels
 
 	void Init()
 	{
-		Engine::PushRenderCallback(Render, 5);
+		Engine::PushRenderCallback(Render, 4);
 		InitGLStuff();
 		InitBlocks();
 	}
@@ -142,8 +157,10 @@ namespace Voxels
 			if (pos.x > 3 && pos.x < 7 &&
 				pos.y > 3 && pos.y < 7)
 			{
-				blocks[i].alpha = 1;
+				//blocks[i].diffuse = { 1, 0, 0 };
 			}
+			blocks[i].diffuse = Utils::get_random_vec3_r(0, 1);
+			blocks[i].alpha = 1;
 		}
 	}
 
@@ -152,19 +169,6 @@ namespace Voxels
 		auto c = Renderer::GetPipeline()->GetCamera(0);
 		cam = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
 			glm::vec3(0, 1, 0), glm::radians(30.f), screenDim.x / screenDim.y);
-		
-		if (lines)
-		{
-			ShaderPtr s = Shader::shaders["line"];
-			s->Use();
-			glm::mat4 model(1);
-			glm::mat4 view = c->GetView();
-			glm::mat4 proj = c->GetProj();
-			s->setMat4("u_model", model);
-			s->setMat4("u_view", view);
-			s->setMat4("u_proj", proj);
-			lines->Draw();
-		}
 
 		// ray trace her
 		{
@@ -190,6 +194,20 @@ namespace Voxels
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		vao->Unbind();
 		s->Unuse();
+
+		glClear(GL_DEPTH_BUFFER_BIT);
+		if (lines)
+		{
+			ShaderPtr s = Shader::shaders["line"];
+			s->Use();
+			glm::mat4 model(1);
+			glm::mat4 view = c->GetView();
+			glm::mat4 proj = c->GetProj();
+			s->setMat4("u_model", model);
+			s->setMat4("u_view", view);
+			s->setMat4("u_proj", proj);
+			lines->Draw();
+		}
 	}
 
 	void CameraRaySnapshot()

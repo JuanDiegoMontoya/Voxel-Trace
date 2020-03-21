@@ -51,11 +51,13 @@ int signum(float x)
  *
  * If the callback returns a true value, the traversal will be stopped.
  */
+template<typename CALLBACK>
 __device__
-void raycast(Voxels::Block* pWorld, glm::vec3 worldDim,
+void raycast(Voxels::Block* pWorld, glm::ivec3 worldDim,
 	glm::vec3 origin, glm::vec3 direction,
 	float radius,
-	bool callback(glm::vec3, Voxels::Block*, glm::vec3))
+	//bool callback(glm::vec3, Voxels::Block*, glm::vec3))
+	CALLBACK callback)
 {
 	glm::ivec3 p = glm::floor(origin);
 	glm::vec3 d = direction;
@@ -71,10 +73,11 @@ void raycast(Voxels::Block* pWorld, glm::vec3 worldDim,
 
 	while (1)
 	{
+		//printf("ray pos: %d, %d, %d\n", p.x, p.y, p.z);
 		// use null block if not within bounds of world
 		Voxels::Block* block;
 		if (glm::any(glm::lessThan(p, glm::ivec3(0, 0, 0))) ||
-			glm::any(glm::greaterThanEqual(p, glm::ivec3(worldDim))))
+			glm::any(glm::greaterThanEqual(p, worldDim)))
 			block = nullptr;
 		else // TODO: make sure this flatten function is correct by testing various input Xs and Ys
 			block = &pWorld[flatten(p, worldDim.x, worldDim.y)];

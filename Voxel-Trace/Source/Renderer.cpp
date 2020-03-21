@@ -12,7 +12,6 @@
 #include "Interface.h"
 #include <stb_image.h>
 
-#include "PipeWater.h"
 #include "Renderer.h"
 
 #include "testCU.h"
@@ -28,21 +27,6 @@ namespace Renderer
 		bool ppBlurFilter = false;
 		bool ppEdgeDetection = false;
 		bool ppChromaticAberration = false;
-
-		// CA
-		bool pauseSimulation = false;
-		float updateFrequency = .01f; // seconds
-		float timeCount = 0;
-		PipeWater<100, 1, 100> Water5;
-		PipeWater<500, 1, 500> Water6;
-		PipeWater<2000, 1, 2000> Water7;
-		std::vector<CAInterface*> automataList =
-		{
-			reinterpret_cast<CAInterface*>(&Water6),
-			reinterpret_cast<CAInterface*>(&Water7),
-		};
-		int automataIndex = 1;
-		CAInterface* automaton = automataList[automataIndex];
 
 		// cubemap
 		GLuint cubeTex;
@@ -123,11 +107,10 @@ namespace Renderer
 
 		CompileShaders();
 
-		pipeline.AddCamera(new Camera(kControlCam));
+		auto cam = new Camera(kControlCam);
+		cam->SetPos({ 0, 0, 0 });
+		pipeline.AddCamera(cam);
 		pipeline.ClearColor = { 0, .2, .4 };
-
-		initCubeMap();
-		//automaton->Init();
 
 		Engine::PushRenderCallback(DrawAll, 0);
 		Engine::PushUpdateCallback(Update, 0);
@@ -166,16 +149,7 @@ namespace Renderer
 
 	void Update()
 	{
-		if (!pauseSimulation)
-		{
-			timeCount += Engine::GetDT();
-
-			if (timeCount > updateFrequency)
-			{
-				//automaton->Update();
-				timeCount = 0;
-			}
-		}
+		
 	}
 
 
@@ -200,12 +174,12 @@ namespace Renderer
 
 		Clear();
 
-		drawCubeMap();
-
 		//automaton->Render();
 		//RenderTestCUDA();
 
+		glDepthFunc(GL_ALWAYS);
 		drawAxisIndicators();
+		glDepthFunc(GL_LESS);
 
 		glDisable(GL_FRAMEBUFFER_SRGB);
 		PERF_BENCHMARK_END;
@@ -266,32 +240,6 @@ namespace Renderer
 	}
 
 
-	CAInterface* GetAutomaton()
-	{
-		return automaton;
-	}
-
-
-	void SetAutomatonIndex(int index)
-	{
-		automataIndex = index;
-		automaton = automataList[index];
-		automaton->Init();
-	}
-
-
-	int GetAutomatonIndex()
-	{
-		return automataIndex;
-	}
-
-
-	float& GetUpdateFrequencyRef()
-	{
-		return updateFrequency;
-	}
-
-
 	// draws a single quad over the entire viewport
 	void Renderer::drawQuad()
 	{
@@ -321,68 +269,5 @@ namespace Renderer
 		glBindVertexArray(quadVAO);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
-	}
-
-
-	void Renderer::initCubeMap()
-	{
-		glGenTextures(1, &cubeTex);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTex);
-
-		cubeVao = new VAO();
-		cubeVbo = new VBO(Vertices::skybox, sizeof(Vertices::skybox));
-		VBOlayout layout;
-		layout.Push<float>(3);
-		cubeVao->AddBuffer(*cubeVbo, layout);
-
-		std::vector<std::string> faces =
-		{
-			"./resources/Textures/skybox/right.jpg",
-			"./resources/Textures/skybox/left.jpg",
-			"./resources/Textures/skybox/top.jpg",
-			"./resources/Textures/skybox/bottom.jpg",
-			"./resources/Textures/skybox/front.jpg",
-			"./resources/Textures/skybox/back.jpg"
-		};
-		int width, height, nrChannels;
-		for (unsigned int i = 0; i < faces.size(); i++)
-		{
-			unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-			if (data)
-			{
-				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-					0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-				);
-				stbi_image_free(data);
-			}
-			else
-			{
-				std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
-				stbi_image_free(data);
-			}
-		}
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	}
-
-
-	void drawCubeMap()
-	{
-		glDepthMask(GL_FALSE);
-		ShaderPtr sr = Shader::shaders["skybox"];
-		sr->Use();
-		sr->setInt("skybox", 1);
-		sr->setMat4("proj", pipeline.GetCamera(0)->GetProj());
-		glm::mat4 view = pipeline.GetCamera(0)->GetView();
-		view = glm::mat4(glm::mat3(view));
-		sr->setMat4("view", view);
-		cubeVao->Bind();
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTex);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glDepthMask(GL_TRUE);
 	}
 }

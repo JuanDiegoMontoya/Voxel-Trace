@@ -10,6 +10,9 @@ struct Ray
 class RayCamera
 {
 public:
+#ifdef __CUDACC__
+	__host__ __device__
+#endif
 	virtual Ray makeRay(glm::vec2 p) const = 0;
 
 };
@@ -30,7 +33,15 @@ public:
 		float fov,
 		float aspectRatio);
 
-	Ray makeRay(glm::vec2 p) const override;
+#ifdef __CUDACC__
+	__host__ __device__
+#endif
+	Ray makeRay(glm::vec2 p) const override
+	{
+		glm::vec3 dir = forward + p.x * dim.x * right + p.y * dim.y * up;
+		return Ray(position, glm::normalize(dir));
+	}
+
 
 private:
 	glm::vec3 position;

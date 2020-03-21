@@ -304,7 +304,9 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="pick.cpp" />
+    <CudaCompile Include="pick.cu">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
     <ClCompile Include="RayCamera.cpp" />
     <ClCompile Include="settings.cpp" />
     <ClCompile Include="Interface.cpp" />

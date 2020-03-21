@@ -251,9 +251,6 @@
     <ClCompile Include="Engine\Source\Line.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
-    <ClCompile Include="pick.cpp">
-      <Filter>CA</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="PipeWater.cu">
@@ -263,6 +260,9 @@
       <Filter>CA</Filter>
     </CudaCompile>
     <CudaCompile Include="testCU.cu">
+      <Filter>CA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="pick.cu">
       <Filter>CA</Filter>
     </CudaCompile>
   </ItemGroup>

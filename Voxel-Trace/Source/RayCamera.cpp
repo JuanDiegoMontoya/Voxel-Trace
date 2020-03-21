@@ -16,9 +16,3 @@ PerspectiveRayCamera::PerspectiveRayCamera(
 	dim.y = glm::tan(fov / 1);
 	dim.x = dim.y * aspectRatio;
 }
-
-Ray PerspectiveRayCamera::makeRay(glm::vec2 p) const
-{
-	glm::vec3 dir = forward + p.x * dim.x * right + p.y * dim.y * up;
-	return Ray(position, glm::normalize(dir));
-}

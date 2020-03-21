@@ -24,6 +24,11 @@ __device__ __host__ int flatten(glm::ivec3 coord)
 	return coord.x + coord.y * X + coord.z * X * Y;
 }
 
+inline __device__ __host__ int flatten(glm::ivec3 coord, int X, int Y)
+{
+	return coord.x + coord.y * X + coord.z * X * Y;
+}
+
 template<int X>
 __device__ __host__ int flatten(glm::ivec2 coord)
 {
@@ -58,7 +63,7 @@ inline __device__ __host__ int flatten(glm::ivec2 coord, int X)
 	return coord.x + coord.y * X;
 }
 
-inline __device__ __host__ glm::ivec2 expand(unsigned index, int X)
+inline __device__ __host__ glm::ivec2 expand(unsigned index, int Y)
 {
-	return { index / X, index % X };
+	return { index / Y, index % Y };
 }

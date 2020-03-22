@@ -12,6 +12,15 @@ __device__ __host__ glm::ivec3 expand(unsigned index)
 	return { i, j, k };
 }
 
+__device__ __host__
+inline glm::ivec3 expand(unsigned index, int X, int Y)
+{
+	int k = index / (X * Y);
+	int j = (index % (X * Y)) / X;
+	int i = index - j * X - k * X * Y;
+	return { i, j, k };
+}
+
 template<int X>
 __device__ __host__ glm::ivec2 expand(unsigned index)
 {

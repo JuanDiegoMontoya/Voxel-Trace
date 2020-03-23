@@ -48,7 +48,9 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		glm::vec4 val = glm::vec4(ray.direction * .5f + glm::vec3(1), 1);
 
 		val = { .53f, .81f, .92f, 1 };
-		auto cb = [&val, &ray](glm::vec3 p, Voxels::Block* block, glm::vec3 norm)->bool
+
+
+		auto cb = [&pWorld, &worldDim, &val, &ray](glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3 ex)->bool
 		{
 			if (block)
 			{
@@ -59,12 +61,33 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				//FragColor = block->diffuse;
 				//FragColor(norm + glm::vec3(1)) * .5f;
 
-				glm::vec3 sunRay = glm::normalize(glm::vec3(.1f, -.9f, -.2f));
-				float diff = glm::max(glm::dot(-sunRay, norm), 0.f);
-				float spec = glm::pow(glm::max(glm::dot(ray.direction, glm::reflect(norm, -sunRay)), 0.0f), 64.f);
+				bool shadowed = false;
+				auto shadowCB = [&shadowed](glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
+				{
+					if (block && block->alpha == 1)
+					{
+						shadowed = true;
+						return true;
+					}
+					return false;
+				};
+				glm::vec3 sunPos(20, 0, 0);
+				glm::vec3 sunRay = glm::normalize(ex - sunPos); // block-to-light ray
+
+				//glm::vec3 shadowDir = glm::reflect(-ray.direction, norm);
+				glm::vec3 shadowDir(sunRay);
+				raycastBranchless(pWorld, worldDim, ex + .1f * shadowDir, shadowDir, 100, shadowCB);
+				block->diffuse = shadowDir * .5f + .5f;
+
+				float diff = glm::max(glm::dot(sunRay, norm), 0.f);
+				float spec = glm::pow(glm::max(glm::dot(ray.direction, glm::reflect(sunRay, norm)), 0.0f), 64.f);
 				glm::vec3 ambient = glm::vec3(.2) * block->diffuse;
 				glm::vec3 specular = glm::vec3(.7) * spec;
 				glm::vec3 diffuse = block->diffuse * diff;
+				if (shadowed)
+				{
+					diffuse = specular = { 0, 0, 0 };
+				}
 				FragColor = diffuse + ambient + specular;
 				val = glm::vec4(FragColor, 1.f);
 				return true;
@@ -88,7 +111,7 @@ namespace Voxels
 
 		// world description
 		Block* blocks = nullptr;
-		glm::ivec3 chunkDim = { 3, 4, 5 };
+		glm::ivec3 chunkDim = { 10, 10, 10 };
 		int numBlocks = chunkDim.x * chunkDim.y * chunkDim.z;
 
 		// screen info
@@ -172,7 +195,7 @@ namespace Voxels
 			auto pos = expand(i, chunkDim.x, chunkDim.y);
 			//if (glm::all(glm::lessThan(pos, { 5, 5, 5 })))
 			{
-				blocks[i].alpha = 1;
+				blocks[i].alpha = rand() % 100 > 50 ? 1 : 0;
 				//blocks[i].diffuse = { 1, 0, 0 };
 			}
 			blocks[i].diffuse = Utils::get_random_vec3_r(0, 1);

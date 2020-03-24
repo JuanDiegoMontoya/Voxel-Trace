@@ -167,7 +167,9 @@ void raycastBranchless(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		(glm::sign(rayDir) * 0.5f) + 0.5f) * deltaDist;
 	glm::bvec3 mask;
 	glm::vec3 norm(0);
-	glm::vec3 exact(sideDist);
+	glm::vec3 exact(glm::vec3(mapPos) - sideDist * glm::vec3(mask)); // incorrect!
+
+	//printf("%f, %f, %f\n", sideDist.x, sideDist.y, sideDist.z);
 
 	for (int i = 0; i < radius; i++)
 	{
@@ -188,12 +190,13 @@ void raycastBranchless(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		glm::vec3 c(sideDist.z, sideDist.x, sideDist.y);
 		mask = glm::lessThanEqual(a, glm::min(b, c));
 
+		
+		// find the exact location the ray crossed block borders
+		exact = origin + (rayDir * (glm::min(sideDist.x, glm::min(sideDist.y, sideDist.z))));
+
 		// advance ray
 		sideDist += glm::vec3(mask) * deltaDist;
 		mapPos += norm = glm::ivec3(glm::vec3(mask)) * rayStep;
 		norm *= -1; // norm is opposite of step
-
-		// find the exact location the ray crossed block borders
-		exact = glm::vec3(mapPos) - sideDist * glm::vec3(mask);
 	}
 }

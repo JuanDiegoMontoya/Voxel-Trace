@@ -16,6 +16,7 @@
 #include "cuda_gl_interop.h"
 #include "pick.h"
 
+
 surface<void, 2> screenSurface;
 
 __device__ static bool swagCallback(glm::vec3 p, Voxels::Block* block, glm::vec3 norm)
@@ -50,7 +51,8 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		val = { .53f, .81f, .92f, 1 };
 
 
-		auto cb = [&pWorld, &worldDim, &val, &ray](glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3 ex)->bool
+		auto cb = [&](
+			glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3 ex)->bool
 		{
 			if (block)
 			{
@@ -62,7 +64,8 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				//FragColor(norm + glm::vec3(1)) * .5f;
 
 				bool shadowed = false;
-				auto shadowCB = [&shadowed](glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
+				auto shadowCB = [&shadowed](
+					glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
 				{
 					if (block && block->alpha == 1)
 					{
@@ -72,15 +75,22 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 					return false;
 				};
 				glm::vec3 sunPos(20, 0, 0);
+				sunPos.x = glm::cos(time) * 20;
+				sunPos.y = glm::sin(time) * 20;
+
 				glm::vec3 sunRay = glm::normalize(ex - sunPos); // block-to-light ray
 
 				//glm::vec3 shadowDir = glm::reflect(-ray.direction, norm);
 				glm::vec3 shadowDir(sunRay);
-				raycastBranchless(pWorld, worldDim, ex + .1f * shadowDir, shadowDir, 100, shadowCB);
-				block->diffuse = shadowDir * .5f + .5f;
+				raycastBranchless(pWorld, worldDim, ex + .05f * shadowDir,
+					shadowDir, 100, shadowCB);
+				//block->diffuse = shadowDir * .5f + .5f;
+				//block->diffuse = ex / 2.f;
 
+				// phong
 				float diff = glm::max(glm::dot(sunRay, norm), 0.f);
-				float spec = glm::pow(glm::max(glm::dot(ray.direction, glm::reflect(sunRay, norm)), 0.0f), 64.f);
+				float spec = glm::pow(glm::max(glm::dot(ray.direction, 
+					glm::reflect(sunRay, norm)), 0.0f), 64.f);
 				glm::vec3 ambient = glm::vec3(.2) * block->diffuse;
 				glm::vec3 specular = glm::vec3(.7) * spec;
 				glm::vec3 diffuse = block->diffuse * diff;
@@ -88,6 +98,8 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				{
 					diffuse = specular = { 0, 0, 0 };
 				}
+
+				// final color of pixel
 				FragColor = diffuse + ambient + specular;
 				val = glm::vec4(FragColor, 1.f);
 				return true;
@@ -216,7 +228,7 @@ namespace Voxels
 
 			//printf("screenDim = %f, %f\n", screenDim.x, screenDim.y);
 			epicRayTracer<<<KernelNumBlocks, KernelBlockSize>>>(
-				blocks, chunkDim, cam, chunkDim, screenDim, glfwGetTime());
+				blocks, chunkDim, cam, chunkDim, screenDim, Renderer::SunPos());
 			cudaDeviceSynchronize();
 
 			cudaCheck(cudaGraphicsUnmapResources(1, &imageResource, 0));

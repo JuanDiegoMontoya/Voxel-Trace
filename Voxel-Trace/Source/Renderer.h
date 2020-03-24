@@ -19,4 +19,6 @@ namespace Renderer
 
 	// CA stuff
 	Pipeline* GetPipeline();
+
+	float& SunPos();
 }

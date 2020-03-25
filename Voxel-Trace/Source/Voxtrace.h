@@ -18,4 +18,10 @@ namespace Voxels
 		float alpha = 0;
 		float n = 1.5; // index of refraction
 	};
+
+	struct Light
+	{
+		glm::vec3 position{ 0, 0, 0 };
+		float radius{ 0 };
+	};
 }

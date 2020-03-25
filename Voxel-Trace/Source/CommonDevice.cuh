@@ -1,6 +1,9 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "vendor/helper_cuda.h"
+#include <math.h>
+#include <curand.h>
+#include <curand_kernel.h>
 #define cudaCheck(err) checkCudaErrors(err, __FILE__, __LINE__)
 
 template<int X, int Y>
@@ -76,3 +79,15 @@ inline __device__ __host__ glm::ivec2 expand(unsigned index, int Y)
 {
 	return { index / Y, index % Y };
 }
+
+//inline __device__
+//float randy(float low, float high)
+//{
+//	int idx = threadIdx.x + blockDim.x * blockIdx.x;
+//	// assume have already set up curand and generated state for each thread...
+//	// assume ranges vary by thread index
+//	float myrandf = curand_uniform(&(my_curandstate[idx]));
+//	myrandf *= (max_rand_int[idx] - min_rand_int[idx] + 0.999999);
+//	myrandf += min_rand_int[idx];
+//	int myrand = (int)truncf(myrandf);
+//}

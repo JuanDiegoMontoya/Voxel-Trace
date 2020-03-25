@@ -155,6 +155,9 @@
     <ClInclude Include="testCU.h">
       <Filter>CA</Filter>
     </ClInclude>
+    <ClInclude Include="Randy.h">
+      <Filter>CA</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vendor\imgui\imgui.cpp">
@@ -251,6 +254,9 @@
       <Filter>CA</Filter>
     </CudaCompile>
     <CudaCompile Include="pick.cu">
+      <Filter>CA</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Randy.cu">
       <Filter>CA</Filter>
     </CudaCompile>
   </ItemGroup>

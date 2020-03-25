@@ -15,10 +15,8 @@
 #include "Renderer.h"
 
 #include "testCU.h"
-
-// string cast
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/string_cast.hpp>
+#include "Voxtrace.h"
+#include "Randy.h"
 
 // initializes the gBuffer and its attached textures
 namespace Renderer
@@ -37,12 +35,16 @@ namespace Renderer
 		VAO* cubeVao = nullptr;
 		VBO* cubeVbo = nullptr;
 
-		float sunPos;
+		Voxels::Light sun;
+		float sunPos = 0;
+		float sunDist = 20;
 
 		Pipeline pipeline;
 	}
 
 	float& SunPos() { return sunPos; }
+	float& SunDist() { return sunDist; }
+	Voxels::Light* Sun() { return &sun; }
 	
 
 	static void GLAPIENTRY
@@ -123,29 +125,19 @@ namespace Renderer
 		Engine::PushRenderCallback(DrawAll, 0);
 		Engine::PushUpdateCallback(Update, 0);
 
+		//for (int i = 0; i < 150; i++)
+		//{
+		//	glm::vec3 spherePos;
+		//	do
+		//	{
+		//		spherePos = Utils::get_random_vec3_r(-1, 1);
+		//	} while (glm::length(spherePos) > 1);
+
+		//	printf("{ %.2f, %.2f, %.2f },\n", spherePos.x, spherePos.y, spherePos.z);
+		//}
+
+		//InitCUDARand();
 		InitTestCUDA();
-
-
-		auto rayPos = glm::vec3(5, 2.3, 11.91);
-		auto rayDir = glm::normalize(glm::vec3(1, 21, 9));
-		glm::ivec3 mapPos = glm::ivec3(glm::floor(rayPos + 0.f));
-		glm::vec3 deltaDist = glm::abs(glm::vec3(glm::length(rayDir)) / rayDir);
-		glm::ivec3 rayStep = glm::ivec3(sign(rayDir));
-		glm::vec3 sideDist = (glm::sign(rayDir) * (glm::vec3(mapPos) - rayPos) +
-			(glm::sign(rayDir) * 0.5f) + 0.5f) * deltaDist;
-		glm::vec3 a(sideDist.x, sideDist.y, sideDist.z);
-		glm::vec3 b(sideDist.y, sideDist.z, sideDist.x);
-		glm::vec3 c(sideDist.z, sideDist.x, sideDist.y);
-		glm::bvec3 mask = glm::lessThanEqual(a, glm::min(b, c));
-		glm::vec3 exact = rayDir * (glm::vec3(mask) * sideDist);
-		std::cout << "rayPos: " << glm::to_string(rayPos) << std::endl;
-		std::cout << "rayDir: " << glm::to_string(rayDir) << std::endl;
-		std::cout << "mapPos: " << glm::to_string(mapPos) << std::endl;
-		std::cout << "deltaDist: " << glm::to_string(deltaDist) << std::endl;
-		std::cout << "rayStep: " << glm::to_string(rayStep) << std::endl;
-		std::cout << "sideDist: " << glm::to_string(sideDist) << std::endl;
-		std::cout << "mask: " << glm::to_string(mask) << std::endl;
-		std::cout << "exact: " << glm::to_string(exact) << std::endl;
 	}
 
 

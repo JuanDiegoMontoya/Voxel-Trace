@@ -308,6 +308,7 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClCompile Include="settings.cpp" />
     <ClCompile Include="Interface.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <CudaCompile Include="Randy.cu" />
     <CudaCompile Include="testCU.cu">
       <FileType>CppCode</FileType>
     </CudaCompile>
@@ -398,6 +399,7 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClInclude Include="Engine\Source\vbo.h" />
     <ClInclude Include="Engine\Source\vbo_layout.h" />
     <ClInclude Include="pick.h" />
+    <ClInclude Include="Randy.h" />
     <ClInclude Include="RayCamera.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="Interface.h" />

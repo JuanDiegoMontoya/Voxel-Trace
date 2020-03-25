@@ -167,11 +167,12 @@ void raycastBranchless(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		(glm::sign(rayDir) * 0.5f) + 0.5f) * deltaDist;
 	glm::bvec3 mask;
 	glm::vec3 norm(0);
-	glm::vec3 exact(glm::vec3(mapPos) - sideDist * glm::vec3(mask)); // incorrect!
+	glm::vec3 exact(origin);
+	float minComp = glm::min(sideDist.x, glm::min(sideDist.y, sideDist.z));
 
 	//printf("%f, %f, %f\n", sideDist.x, sideDist.y, sideDist.z);
 
-	for (int i = 0; i < radius; i++)
+	for (int i = 0; minComp < radius; i++)
 	{
 		Voxels::Block* block;
 		if (glm::any(glm::lessThan(mapPos, glm::ivec3(0, 0, 0))) ||
@@ -192,7 +193,8 @@ void raycastBranchless(Voxels::Block* pWorld, glm::ivec3 worldDim,
 
 		
 		// find the exact location the ray crossed block borders
-		exact = origin + (rayDir * (glm::min(sideDist.x, glm::min(sideDist.y, sideDist.z))));
+		minComp = glm::min(sideDist.x, glm::min(sideDist.y, sideDist.z));
+		exact = origin + (rayDir * minComp);
 
 		// advance ray
 		sideDist += glm::vec3(mask) * deltaDist;

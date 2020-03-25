@@ -72,7 +72,16 @@ namespace Interface
 			if (ImGui::Button("Camera Snapshot"))
 				Voxels::CameraRaySnapshot();
 
-			ImGui::SliderFloat("Sun pos", &Renderer::SunPos(), 0, 6.28f, "%.2f");
+			ImGui::SliderFloat3("Sun pos", &Renderer::Sun()->position[0], -30, 30);
+			ImGui::SliderFloat("Sun radius", &Renderer::Sun()->radius, 0, 30);
+			if (ImGui::SliderFloat("Sun angle", &Renderer::SunPos(), 0, 6.28f, "%.2f"))
+			{
+
+			}
+			if (ImGui::SliderFloat("Sun dist", &Renderer::SunDist(), 0, 20.f, "%.1f"))
+			{
+
+			}
 
 			ImGui::End();
 		}

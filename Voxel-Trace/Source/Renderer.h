@@ -1,6 +1,7 @@
 #pragma once
 
 // responsible for making stuff appear on the screen
+namespace Voxels { struct Light; }
 class Pipeline;
 namespace Renderer
 {
@@ -21,4 +22,6 @@ namespace Renderer
 	Pipeline* GetPipeline();
 
 	float& SunPos();
+	float& SunDist();
+	Voxels::Light* Sun();
 }

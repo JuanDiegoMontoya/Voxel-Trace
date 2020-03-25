@@ -15,27 +15,22 @@
 #include "CommonDevice.cuh"
 #include "cuda_gl_interop.h"
 #include "pick.h"
+#include "Randy.h"
 
 
 surface<void, 2> screenSurface;
 
-__device__ static bool swagCallback(glm::vec3 p, Voxels::Block* block, glm::vec3 norm)
-{
-	if (block)
-	{
-		//printf("hit pos: %.0f, %.0f, %.0f\n", p.x, p.y, p.z);
-		return true;
-	}
-	return false;
-}
-
 __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 	PerspectiveRayCamera cam, 
-	glm::vec3 chunkDim, glm::vec2 imgSize, float time)
+	glm::vec3 chunkDim, glm::vec2 imgSize, Voxels::Light sun, curandState_t* states)
 {
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 	int n = imgSize.x * imgSize.y;
+	//curandState_t randState = randStates[index];
+	//printf("%d, %d, %d\n", blockIdx.x, blockDim.x, threadIdx.x);
+	//printf("%d\n", blockIdx.x * blockDim.x + threadIdx.x);
+	//printf("%d\n", curand(&randStates[index]));
 
 	//printf("index = %d, stride = %d, n = %d\n", index, stride, n);
 	for (int i = index; i < n; i += stride)
@@ -63,27 +58,41 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				//FragColor = block->diffuse;
 				//FragColor(norm + glm::vec3(1)) * .5f;
 
-				bool shadowed = false;
-				auto shadowCB = [&shadowed](
+				float visibility = 1;
+				int numShadowRays = 10;
+				auto shadowCB = [&visibility, numShadowRays](
 					glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
 				{
 					if (block && block->alpha == 1)
 					{
-						shadowed = true;
+						visibility -= 1.f/numShadowRays;
 						return true;
 					}
 					return false;
 				};
-				glm::vec3 sunPos(20, 0, 0);
-				sunPos.x = glm::cos(time) * 20;
-				sunPos.y = glm::sin(time) * 20;
 
-				glm::vec3 sunRay = glm::normalize(ex - sunPos); // block-to-light ray
+				glm::vec3 sunRay = glm::normalize(ex - sun.position); // block-to-light ray
+				//raycastBranchless(pWorld, worldDim, ex + .02f * sunRay,
+				//	sunRay, glm::min(glm::distance(sun.position, ex), 200.f), shadowCB);
 
-				//glm::vec3 shadowDir = glm::reflect(-ray.direction, norm);
-				glm::vec3 shadowDir(sunRay);
-				raycastBranchless(pWorld, worldDim, ex + .05f * shadowDir,
-					shadowDir, 100, shadowCB);
+				for (int i = 0; i < numShadowRays; i++)
+				{
+					// https://demonstrations.wolfram.com/RandomPointsOnASphere/
+					glm::vec3 offset;
+					float theta = curand_uniform(&states[index]) * 2.f * glm::pi<float>(); // range 0 to 2pi
+					float u = curand_uniform(&states[index]) * 2.f - 1.f; // range -1 to 1
+					offset.x = glm::cos(theta) * glm::sqrt(1 - u * u);
+					offset.y = glm::sin(theta) * glm::sqrt(1 - u * u);
+					offset.z = u;
+					//offset *= curand_uniform(&states[index]); // randomly move down along normal
+
+					glm::vec3 sunPoint(sun.position + (offset * sun.radius));
+					glm::vec3 rayy = glm::normalize(ex - sunPoint);
+					raycastBranchless(pWorld, worldDim, ex + .02f * rayy,
+						rayy, glm::min(glm::distance(sunPoint, ex), 200.f), shadowCB);
+				}
+
+
 				//block->diffuse = shadowDir * .5f + .5f;
 				//block->diffuse = ex / 2.f;
 
@@ -94,10 +103,9 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				glm::vec3 ambient = glm::vec3(.2) * block->diffuse;
 				glm::vec3 specular = glm::vec3(.7) * spec;
 				glm::vec3 diffuse = block->diffuse * diff;
-				if (shadowed)
-				{
-					diffuse = specular = { 0, 0, 0 };
-				}
+
+				diffuse *= visibility;
+				specular *= visibility;
 
 				// final color of pixel
 				FragColor = diffuse + ambient + specular;
@@ -107,7 +115,7 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 			return false;
 		};
 
-		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 150.f, cb);
+		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 50, cb);
 
 		// write final pixel value
 		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgSize.y - imgPos.y - 1);
@@ -144,6 +152,7 @@ namespace Voxels
 
 		const int KernelBlockSize = 256;
 		const int KernelNumBlocks = (screenDim.x * screenDim.y + KernelBlockSize - 1) / KernelBlockSize;
+		curandState_t* states;
 	}
 
 	void Init()
@@ -151,6 +160,13 @@ namespace Voxels
 		Engine::PushRenderCallback(Render, 4);
 		InitGLStuff();
 		InitBlocks();
+		//InitCUDARand(screenDim.x * screenDim.y);
+		InitCUDARand(states, KernelBlockSize * KernelNumBlocks);
+	}
+
+	void Shutdown()
+	{
+		ShutdownCUDARands(states);
 	}
 
 	void InitGLStuff()
@@ -207,7 +223,7 @@ namespace Voxels
 			auto pos = expand(i, chunkDim.x, chunkDim.y);
 			//if (glm::all(glm::lessThan(pos, { 5, 5, 5 })))
 			{
-				blocks[i].alpha = rand() % 100 > 50 ? 1 : 0;
+				blocks[i].alpha = rand() % 100 > 80 ? 1 : 0;
 				//blocks[i].diffuse = { 1, 0, 0 };
 			}
 			blocks[i].diffuse = Utils::get_random_vec3_r(0, 1);
@@ -228,7 +244,7 @@ namespace Voxels
 
 			//printf("screenDim = %f, %f\n", screenDim.x, screenDim.y);
 			epicRayTracer<<<KernelNumBlocks, KernelBlockSize>>>(
-				blocks, chunkDim, cam, chunkDim, screenDim, Renderer::SunPos());
+				blocks, chunkDim, cam, chunkDim, screenDim, *Renderer::Sun(), states);
 			cudaDeviceSynchronize();
 
 			cudaCheck(cudaGraphicsUnmapResources(1, &imageResource, 0));

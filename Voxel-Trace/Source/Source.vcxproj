@@ -401,6 +401,7 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClInclude Include="pick.h" />
     <ClInclude Include="Randy.h" />
     <ClInclude Include="RayCamera.h" />
+    <ClInclude Include="TraceInfo.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="Interface.h" />
     <ClInclude Include="Renderer.h" />

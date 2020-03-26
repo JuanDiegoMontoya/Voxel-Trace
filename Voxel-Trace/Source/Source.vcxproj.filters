@@ -22,11 +22,11 @@
     <Filter Include="vendor\ctpl">
       <UniqueIdentifier>{d94d4b42-3a18-475f-a15a-e49c0985918a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="CA">
-      <UniqueIdentifier>{f0ab440e-1854-4d07-ab52-7bb4cfd0e63b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Engine">
       <UniqueIdentifier>{0931c59b-43af-4a25-af2b-202a2f78a906}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ray tracing">
+      <UniqueIdentifier>{f0ab440e-1854-4d07-ab52-7bb4cfd0e63b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -69,7 +69,7 @@
     </ClInclude>
     <ClInclude Include="settings.h" />
     <ClInclude Include="CommonDevice.cuh">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </ClInclude>
     <ClInclude Include="vendor\helper_cuda.h">
       <Filter>vendor</Filter>
@@ -144,19 +144,22 @@
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Voxtrace.h">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Source\Line.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="pick.h">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </ClInclude>
     <ClInclude Include="testCU.h">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </ClInclude>
     <ClInclude Include="Randy.h">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceInfo.h">
+      <Filter>Ray tracing</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -248,16 +251,16 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Voxtrace.cu">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </CudaCompile>
     <CudaCompile Include="testCU.cu">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </CudaCompile>
     <CudaCompile Include="pick.cu">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </CudaCompile>
     <CudaCompile Include="Randy.cu">
-      <Filter>CA</Filter>
+      <Filter>Ray tracing</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

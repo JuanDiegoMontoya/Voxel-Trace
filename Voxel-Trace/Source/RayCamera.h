@@ -2,6 +2,9 @@
 
 struct Ray
 {
+#ifdef __CUDACC__
+	__host__ __device__
+#endif
 	Ray(glm::vec3 o, glm::vec3 dir) : origin(o), direction(dir) {}
 	glm::vec3 origin;
 	glm::vec3 direction;

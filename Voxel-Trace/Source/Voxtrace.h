@@ -9,6 +9,8 @@ namespace Voxels
 
 	void CameraRaySnapshot();
 
+	int& ShadowRays();
+
 	struct Block
 	{
 		Block() = default;
@@ -21,7 +23,7 @@ namespace Voxels
 
 	struct Light
 	{
-		glm::vec3 position{ 0, 0, 0 };
-		float radius{ 0 };
+		glm::vec3 position{ -10, 5, 5 };
+		float radius{ .5f };
 	};
 }

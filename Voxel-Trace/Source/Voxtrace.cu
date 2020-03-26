@@ -16,21 +16,17 @@
 #include "cuda_gl_interop.h"
 #include "pick.h"
 #include "Randy.h"
-
+#include "TraceInfo.h"
 
 surface<void, 2> screenSurface;
 
 __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
-	PerspectiveRayCamera cam, 
-	glm::vec3 chunkDim, glm::vec2 imgSize, Voxels::Light sun, curandState_t* states)
+	PerspectiveRayCamera camera, int numShadowRays, glm::vec2 imgSize,
+	glm::vec3 chunkDim, Voxels::Light sun, curandState_t* states)
 {
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 	int n = imgSize.x * imgSize.y;
-	//curandState_t randState = randStates[index];
-	//printf("%d, %d, %d\n", blockIdx.x, blockDim.x, threadIdx.x);
-	//printf("%d\n", blockIdx.x * blockDim.x + threadIdx.x);
-	//printf("%d\n", curand(&randStates[index]));
 
 	//printf("index = %d, stride = %d, n = %d\n", index, stride, n);
 	for (int i = index; i < n; i += stride)
@@ -40,13 +36,12 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		glm::vec2 screenCoord(
 			(2.0f * imgPos.x) / imgSize.x - 1.0f,
 			(-2.0f * imgPos.y) / imgSize.y + 1.0f);
-		Ray ray = cam.makeRay(screenCoord);
+		Ray ray = camera.makeRay(screenCoord);
 		glm::vec4 val = glm::vec4(ray.direction * .5f + glm::vec3(1), 1);
 
 		val = { .53f, .81f, .92f, 1 };
 
-
-		auto cb = [&](
+		auto primaryRayCB = [&](
 			glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3 ex)->bool
 		{
 			if (block)
@@ -59,7 +54,7 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				//FragColor(norm + glm::vec3(1)) * .5f;
 
 				float visibility = 1;
-				int numShadowRays = 10;
+				//int numShadowRays = numShadowRays;
 				auto shadowCB = [&visibility, numShadowRays](
 					glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
 				{
@@ -71,7 +66,7 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 					return false;
 				};
 
-				glm::vec3 sunRay = glm::normalize(ex - sun.position); // block-to-light ray
+				glm::vec3 sunRay = glm::normalize(sun.position - ex); // block-to-light ray
 				//raycastBranchless(pWorld, worldDim, ex + .02f * sunRay,
 				//	sunRay, glm::min(glm::distance(sun.position, ex), 200.f), shadowCB);
 
@@ -81,13 +76,14 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 					glm::vec3 offset;
 					float theta = curand_uniform(&states[index]) * 2.f * glm::pi<float>(); // range 0 to 2pi
 					float u = curand_uniform(&states[index]) * 2.f - 1.f; // range -1 to 1
-					offset.x = glm::cos(theta) * glm::sqrt(1 - u * u);
-					offset.y = glm::sin(theta) * glm::sqrt(1 - u * u);
+					float sqrt_one_minus_u_squared = glm::sqrt(1 - u * u);
+					offset.x = glm::cos(theta) * sqrt_one_minus_u_squared;
+					offset.y = glm::sin(theta) * sqrt_one_minus_u_squared;
 					offset.z = u;
 					//offset *= curand_uniform(&states[index]); // randomly move down along normal
 
 					glm::vec3 sunPoint(sun.position + (offset * sun.radius));
-					glm::vec3 rayy = glm::normalize(ex - sunPoint);
+					glm::vec3 rayy = glm::normalize(sunPoint - ex);
 					raycastBranchless(pWorld, worldDim, ex + .02f * rayy,
 						rayy, glm::min(glm::distance(sunPoint, ex), 200.f), shadowCB);
 				}
@@ -115,7 +111,7 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 			return false;
 		};
 
-		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 50, cb);
+		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 50, primaryRayCB);
 
 		// write final pixel value
 		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgSize.y - imgPos.y - 1);
@@ -126,7 +122,6 @@ namespace Voxels
 {
 	namespace
 	{
-		PerspectiveRayCamera cam;
 		LinePool* lines = nullptr;
 
 		// world description
@@ -135,12 +130,13 @@ namespace Voxels
 		int numBlocks = chunkDim.x * chunkDim.y * chunkDim.z;
 
 		// screen info
-		glm::vec2 screenDim = { 500, 265 };
+		//glm::vec2 screenDim = { 500, 265 };
 		//glm::vec2 screenDim = { 1920, 1080 }; // 1080p
 		//glm::vec2 screenDim = { 1280, 720 };  // 720p
-		//glm::vec2 screenDim = { 853, 480 };   // 480p
+		glm::vec2 screenDim = { 853, 480 };   // 480p
 		//glm::vec2 screenDim = { 125, 65 };
-		
+		TraceInfo info;
+
 		// rendering shiz
 		VBO* vbo = nullptr;
 		VAO* vao = nullptr;
@@ -162,6 +158,9 @@ namespace Voxels
 		InitBlocks();
 		//InitCUDARand(screenDim.x * screenDim.y);
 		InitCUDARand(states, KernelBlockSize * KernelNumBlocks);
+
+		info.imgSize = screenDim;
+		info.numShadowRays = 10;
 	}
 
 	void Shutdown()
@@ -233,8 +232,9 @@ namespace Voxels
 	void Render()
 	{
 		auto c = Renderer::GetPipeline()->GetCamera(0);
-		cam = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
+		info.camera = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
 			glm::vec3(0, 1, 0), glm::radians(30.f), screenDim.x / screenDim.y);
+
 
 		// ray trace her
 		{
@@ -242,9 +242,10 @@ namespace Voxels
 			cudaCheck(cudaGraphicsSubResourceGetMappedArray(&arr, imageResource, 0, 0));
 			cudaCheck(cudaBindSurfaceToArray(screenSurface, arr));
 
-			//printf("screenDim = %f, %f\n", screenDim.x, screenDim.y);
+			// passing the info struct in creates crashes when calling info.camera.makeRay
 			epicRayTracer<<<KernelNumBlocks, KernelBlockSize>>>(
-				blocks, chunkDim, cam, chunkDim, screenDim, *Renderer::Sun(), states);
+				blocks, chunkDim, info.camera, info.numShadowRays, info.imgSize,
+				chunkDim, *Renderer::Sun(), states);
 			cudaDeviceSynchronize();
 
 			cudaCheck(cudaGraphicsUnmapResources(1, &imageResource, 0));
@@ -290,7 +291,7 @@ namespace Voxels
 				glm::vec2 screenCoord(
 					(2.0f * x) / imgSize.x - 1.0f,
 					(-2.0f * y) / imgSize.y + 1.0f);
-				Ray ray = cam.makeRay(screenCoord);
+				Ray ray = info.camera.makeRay(screenCoord);
 				poss.push_back(ray.origin);
 				dirs.push_back(ray.direction);
 			}
@@ -303,5 +304,10 @@ namespace Voxels
 		}
 
 		lines = new LinePool(poss, dirs, tClrs, bClrs);
+	}
+
+	int& ShadowRays()
+	{
+		return info.numShadowRays;
 	}
 }

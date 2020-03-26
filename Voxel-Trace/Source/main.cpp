@@ -8,7 +8,7 @@
 int main()
 {
 	EngineConfig cfg;
-	cfg.verticalSync = true;
+	cfg.verticalSync = false;
 	Engine::Init(cfg);
 	Renderer::Init();
 	Interface::Init();

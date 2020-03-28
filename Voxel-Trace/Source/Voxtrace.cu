@@ -41,6 +41,7 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 
 		val = { .53f, .81f, .92f, 1 };
 
+		// TODO: move all this into its own function so it can call itself recursively, etc
 		auto primaryRayCB = [&](
 			glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3 ex)->bool
 		{
@@ -48,10 +49,31 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 			{
 				if (block->alpha == 0)
 					return false;
-				//printf("hit pos: %.0f, %.0f, %.0f\n", p.x, p.y, p.z);
-				glm::vec3 FragColor(0);
-				//FragColor = block->diffuse;
-				//FragColor(norm + glm::vec3(1)) * .5f;
+
+				// reflects, i am sorry
+				bool refracted = false; // jank
+				glm::vec3 refClr(block->diffuse);
+				if (block->alpha < 1)
+				{
+					glm::vec3 mult(block->diffuse);
+					auto refractCB = [&](
+						glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
+					{
+						if (block && block->alpha == 1)
+						{
+							refClr = block->diffuse * mult;
+							return true;
+						}
+						return false;
+					};
+
+					refracted = true;
+					float eta = 1.f / block->n;
+					glm::vec3 refrDir = glm::normalize(glm::reflect(ray.direction, norm));
+					raycastBranchless(pWorld, worldDim, ex, refrDir, 50.f, refractCB);
+					//return true; // uncomment when recursion is allowed
+					//refClr = refrDir * .5f + .5f;
+				}
 
 				float visibility = 1;
 				//int numShadowRays = numShadowRays;
@@ -85,7 +107,7 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 					glm::vec3 sunPoint(sun.position + (offset * sun.radius));
 					glm::vec3 rayy = glm::normalize(sunPoint - ex);
 					raycastBranchless(pWorld, worldDim, ex + .02f * rayy,
-						rayy, glm::min(glm::distance(sunPoint, ex), 200.f), shadowCB);
+						rayy, glm::min(glm::distance(sunPoint, ex), 50.f), shadowCB);
 				}
 
 
@@ -104,7 +126,10 @@ __global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 				specular *= visibility;
 
 				// final color of pixel
+				glm::vec3 FragColor(0);
 				FragColor = diffuse + ambient + specular;
+				if (refracted)
+					FragColor = refClr * glm::max(visibility, .2f);
 				val = glm::vec4(FragColor, 1.f);
 				return true;
 			}
@@ -223,6 +248,8 @@ namespace Voxels
 			//if (glm::all(glm::lessThan(pos, { 5, 5, 5 })))
 			{
 				blocks[i].alpha = rand() % 100 > 80 ? 1 : 0;
+				if (rand() % 100 > 95)
+					blocks[i].alpha = .5f;
 				//blocks[i].diffuse = { 1, 0, 0 };
 			}
 			blocks[i].diffuse = Utils::get_random_vec3_r(0, 1);

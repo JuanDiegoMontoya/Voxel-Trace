@@ -79,3 +79,10 @@ inline __device__ __host__ glm::ivec2 expand(unsigned index, int Y)
 {
 	return { index / Y, index % Y };
 }
+
+inline __device__ __host__ 
+float FresnelSchlick(glm::vec3 i, glm::vec3 n, float Eta, float Power)
+{
+	float F = ((1.0 - Eta) * (1.0 - Eta)) / ((1.0 + Eta) * (1.0 + Eta));
+	return F + (1.0 - F) * glm::pow((1.0 - glm::dot(-i, n)), Power);
+}

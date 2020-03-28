@@ -18,6 +18,9 @@
 #include "Voxtrace.h"
 #include "Randy.h"
 
+//#define GLM_ENABLE_EXPERIMENTAL
+//#include <glm/gtx/string_cast.hpp>
+
 // initializes the gBuffer and its attached textures
 namespace Renderer
 {
@@ -136,7 +139,20 @@ namespace Renderer
 		//	printf("{ %.2f, %.2f, %.2f },\n", spherePos.x, spherePos.y, spherePos.z);
 		//}
 
-		//InitCUDARand();
+		//glm::vec3 rayPos = { 0, 0, 0 };
+		//glm::vec3 rayDir = { 1, 0, 0 };
+		//glm::ivec3 mapPos = glm::ivec3(glm::floor(rayPos + 0.f));
+		//glm::vec3 deltaDist = glm::abs(glm::vec3(glm::length(rayDir)) / rayDir);
+		//glm::ivec3 rayStep = glm::ivec3(sign(rayDir));
+		//glm::vec3 sideDist = (glm::sign(rayDir) * (glm::vec3(mapPos) - rayPos) +
+		//	(glm::sign(rayDir) * 0.5f) + 0.5f) * deltaDist;
+
+		//std::cout << "rayPos: " << glm::to_string(rayPos) << std::endl;
+		//std::cout << "rayDir: " << glm::to_string(rayDir) << std::endl;
+		//std::cout << "mapPos: " << glm::to_string(mapPos) << std::endl;
+		//std::cout << "deltaDist: " << glm::to_string(deltaDist) << std::endl;
+		//std::cout << "rayStep: " << glm::to_string(rayStep) << std::endl;
+		//std::cout << "sideDist: " << glm::to_string(sideDist) << std::endl;
 		InitTestCUDA();
 	}
 

@@ -161,6 +161,9 @@
     <ClInclude Include="TraceInfo.h">
       <Filter>Ray tracing</Filter>
     </ClInclude>
+    <ClInclude Include="RTKernel.cuh">
+      <Filter>Ray tracing</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vendor\imgui\imgui.cpp">
@@ -260,6 +263,9 @@
       <Filter>Ray tracing</Filter>
     </CudaCompile>
     <CudaCompile Include="Randy.cu">
+      <Filter>Ray tracing</Filter>
+    </CudaCompile>
+    <CudaCompile Include="RTKernel.cu">
       <Filter>Ray tracing</Filter>
     </CudaCompile>
   </ItemGroup>

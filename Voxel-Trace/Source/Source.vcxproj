@@ -309,6 +309,7 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClCompile Include="Interface.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <CudaCompile Include="Randy.cu" />
+    <CudaCompile Include="RTKernel.cu" />
     <CudaCompile Include="testCU.cu">
       <FileType>CppCode</FileType>
     </CudaCompile>
@@ -401,6 +402,7 @@ copy "$(SolutionDir)lib\CUDA\cudart64_102.dll" "$(TargetDir)cudart64_102.dll" /Y
     <ClInclude Include="pick.h" />
     <ClInclude Include="Randy.h" />
     <ClInclude Include="RayCamera.h" />
+    <ClInclude Include="RTKernel.cuh" />
     <ClInclude Include="TraceInfo.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="Interface.h" />

@@ -14,134 +14,11 @@
 
 #include "CommonDevice.cuh"
 #include "cuda_gl_interop.h"
-#include "pick.h"
+//#include "pick.h"
 #include "Randy.h"
 #include "TraceInfo.h"
+#include "RTKernel.cuh"
 
-surface<void, 2> screenSurface;
-
-__global__ static void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
-	PerspectiveRayCamera camera, int numShadowRays, glm::vec2 imgSize,
-	glm::vec3 chunkDim, Voxels::Light sun, curandState_t* states)
-{
-	int index = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
-	int n = imgSize.x * imgSize.y;
-
-	//printf("index = %d, stride = %d, n = %d\n", index, stride, n);
-	for (int i = index; i < n; i += stride)
-	{
-		glm::vec2 imgPos = expand(i, imgSize.y);
-		//glm::vec2 imgPos(x, y);
-		glm::vec2 screenCoord(
-			(2.0f * imgPos.x) / imgSize.x - 1.0f,
-			(-2.0f * imgPos.y) / imgSize.y + 1.0f);
-		Ray ray = camera.makeRay(screenCoord);
-		glm::vec4 val = glm::vec4(ray.direction * .5f + glm::vec3(1), 1);
-
-		val = { .53f, .81f, .92f, 1 };
-
-		// TODO: move all this into its own function so it can call itself recursively, etc
-		auto primaryRayCB = [&](
-			glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3 ex)->bool
-		{
-			if (block)
-			{
-				if (block->alpha == 0)
-					return false;
-
-				// reflects, i am sorry
-				bool refracted = false; // jank
-				glm::vec3 refClr(block->diffuse);
-				if (block->alpha < 1)
-				{
-					glm::vec3 mult(block->diffuse);
-					auto refractCB = [&](
-						glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
-					{
-						if (block && block->alpha == 1)
-						{
-							refClr = block->diffuse * mult;
-							return true;
-						}
-						return false;
-					};
-
-					refracted = true;
-					float eta = 1.f / block->n;
-					glm::vec3 refrDir = glm::normalize(glm::reflect(ray.direction, norm));
-					raycastBranchless(pWorld, worldDim, ex, refrDir, 50.f, refractCB);
-					//return true; // uncomment when recursion is allowed
-					//refClr = refrDir * .5f + .5f;
-				}
-
-				float visibility = 1;
-				//int numShadowRays = numShadowRays;
-				auto shadowCB = [&visibility, numShadowRays](
-					glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
-				{
-					if (block && block->alpha == 1)
-					{
-						visibility -= 1.f/numShadowRays;
-						return true;
-					}
-					return false;
-				};
-
-				glm::vec3 sunRay = glm::normalize(sun.position - ex); // block-to-light ray
-				//raycastBranchless(pWorld, worldDim, ex + .02f * sunRay,
-				//	sunRay, glm::min(glm::distance(sun.position, ex), 200.f), shadowCB);
-
-				for (int i = 0; i < numShadowRays; i++)
-				{
-					// https://demonstrations.wolfram.com/RandomPointsOnASphere/
-					glm::vec3 offset;
-					float theta = curand_uniform(&states[index]) * 2.f * glm::pi<float>(); // range 0 to 2pi
-					float u = curand_uniform(&states[index]) * 2.f - 1.f; // range -1 to 1
-					float sqrt_one_minus_u_squared = glm::sqrt(1 - u * u);
-					offset.x = glm::cos(theta) * sqrt_one_minus_u_squared;
-					offset.y = glm::sin(theta) * sqrt_one_minus_u_squared;
-					offset.z = u;
-					//offset *= curand_uniform(&states[index]); // randomly move down along normal
-
-					glm::vec3 sunPoint(sun.position + (offset * sun.radius));
-					glm::vec3 rayy = glm::normalize(sunPoint - ex);
-					raycastBranchless(pWorld, worldDim, ex + .02f * rayy,
-						rayy, glm::min(glm::distance(sunPoint, ex), 50.f), shadowCB);
-				}
-
-
-				//block->diffuse = shadowDir * .5f + .5f;
-				//block->diffuse = ex / 2.f;
-
-				// phong
-				float diff = glm::max(glm::dot(sunRay, norm), 0.f);
-				float spec = glm::pow(glm::max(glm::dot(ray.direction, 
-					glm::reflect(sunRay, norm)), 0.0f), 64.f);
-				glm::vec3 ambient = glm::vec3(.2) * block->diffuse;
-				glm::vec3 specular = glm::vec3(.7) * spec;
-				glm::vec3 diffuse = block->diffuse * diff;
-
-				diffuse *= visibility;
-				specular *= visibility;
-
-				// final color of pixel
-				glm::vec3 FragColor(0);
-				FragColor = diffuse + ambient + specular;
-				if (refracted)
-					FragColor = refClr * glm::max(visibility, .2f);
-				val = glm::vec4(FragColor, 1.f);
-				return true;
-			}
-			return false;
-		};
-
-		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 50, primaryRayCB);
-
-		// write final pixel value
-		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgSize.y - imgPos.y - 1);
-	}
-}
 
 namespace Voxels
 {
@@ -267,7 +144,7 @@ namespace Voxels
 		{
 			cudaCheck(cudaGraphicsMapResources(1, &imageResource, 0));
 			cudaCheck(cudaGraphicsSubResourceGetMappedArray(&arr, imageResource, 0, 0));
-			cudaCheck(cudaBindSurfaceToArray(screenSurface, arr));
+			cudaCheck(cudaBindSurfaceToArray(GetScreenSurface(), arr));
 
 			// passing the info struct in creates crashes when calling info.camera.makeRay
 			epicRayTracer<<<KernelNumBlocks, KernelBlockSize>>>(

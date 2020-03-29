@@ -89,7 +89,7 @@ float FresnelSchlick(glm::vec3 i, glm::vec3 n, float Eta, float Power)
 
 // returns an arbitrary vector that is orthogonal to the input
 inline __device__ __host__
-glm::vec3 OrthoVec(glm::vec3 a)
+glm::vec3 OrthoVec(const glm::vec3& a)
 {
 	// a: choose any component
 	// b: choose nonzero component
@@ -101,15 +101,13 @@ glm::vec3 OrthoVec(glm::vec3 a)
 	{
 		return { -a[2], 0, a[0] };
 	}
-	return { -a[1],  a[0] , 0 };
-
-	a[0] *= -1;
-	return a;
+	return { -a[1], a[0], 0 };
 }
 
-inline __device__
+// expects normalized input!
 // radius = half width of base of 1 unit high cone
 // angle = slope of cone (radians)
+inline __device__
 glm::vec3 RandVecInCone(glm::vec3 dir, float angle, curandState_t& state)
 {
 	// generate random point on unit sphere

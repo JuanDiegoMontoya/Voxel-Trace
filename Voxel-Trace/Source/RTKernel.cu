@@ -35,9 +35,6 @@ struct PrimaryRayCaster
 			if (block->alpha == 0)
 				return false;
 
-			// reflects, i am sorry
-			bool refracted = false; // jank
-			glm::vec3 refClr(block->diffuse);
 			if (block->alpha < 1)
 			{
 				glm::vec3 reflDir = glm::normalize(glm::reflect(info.ray.direction, norm));
@@ -45,7 +42,6 @@ struct PrimaryRayCaster
 				castor.depthRemaining--;
 				raycastBranchless(info.pWorld, info.worldDim, ex + reflDir * .001f, reflDir, 50.f, castor);
 				return true; // uncomment when recursion is allowed
-				//refClr = refrDir * .5f + .5f;
 			}
 
 			float visibility = 1;
@@ -69,7 +65,8 @@ struct PrimaryRayCaster
 			{
 				float distToSun = glm::distance(info.sun.position, ex);
 				float angle = glm::atan(info.sun.radius / distToSun);
-				glm::vec3 shadowDir = RandVecInCone(info.sun.position - ex, angle, info.state);
+				glm::vec3 shadowDir = glm::normalize(
+					RandVecInCone(glm::normalize(info.sun.position - ex), angle, info.state));
 				raycastBranchless(info.pWorld, info.worldDim, ex + .001f * shadowDir,
 					shadowDir, glm::min(distToSun, 50.f), shadowCB);
 				//block->diffuse = glm::vec3(angle * .5f + .5f);

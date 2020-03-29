@@ -200,7 +200,7 @@ namespace Voxels
 		//		dirs.push_back(ray.direction);
 		//	}
 		//}
-		float angle = glm::pi<float>() / 2;
+		float angle = glm::atan(30);
 		Ray ray = info.camera.makeRay({ 0, 0 });
 		for (int i = 0; i < 1000; i++)
 		{
@@ -214,10 +214,11 @@ namespace Voxels
 			offset.y = glm::sin(theta) * squ;
 			offset.z = u;
 
-			// height of triangle, from tan(y/x)=angle
+			// radius of cone, from tan(radius/h)=angle
 			// x = 1 since this is unit cone
 			float radius = glm::atan(angle);
 			dir += (offset * radius);
+
 			glm::vec3 pos = ray.origin;
 			poss.push_back(pos);
 			dirs.push_back(glm::normalize(dir));

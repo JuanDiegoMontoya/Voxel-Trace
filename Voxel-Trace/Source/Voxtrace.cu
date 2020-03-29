@@ -188,17 +188,39 @@ namespace Voxels
 		std::vector<glm::vec3> poss, dirs, tClrs, bClrs;
 
 		glm::vec2 imgSize(screenDim);
-		for (int x = 0; x < imgSize.x; x++)
+		//for (int x = 0; x < imgSize.x; x++)
+		//{
+		//	for (int y = 0; y < imgSize.y; y++)
+		//	{
+		//		glm::vec2 screenCoord(
+		//			(2.0f * x) / imgSize.x - 1.0f,
+		//			(-2.0f * y) / imgSize.y + 1.0f);
+		//		Ray ray = info.camera.makeRay(screenCoord);
+		//		poss.push_back(ray.origin);
+		//		dirs.push_back(ray.direction);
+		//	}
+		//}
+		float angle = glm::pi<float>() / 2;
+		Ray ray = info.camera.makeRay({ 0, 0 });
+		for (int i = 0; i < 1000; i++)
 		{
-			for (int y = 0; y < imgSize.y; y++)
-			{
-				glm::vec2 screenCoord(
-					(2.0f * x) / imgSize.x - 1.0f,
-					(-2.0f * y) / imgSize.y + 1.0f);
-				Ray ray = info.camera.makeRay(screenCoord);
-				poss.push_back(ray.origin);
-				dirs.push_back(ray.direction);
-			}
+			glm::vec3 dir = ray.direction;
+			// generate random point on unit sphere
+			float theta = Utils::get_random(0, glm::two_pi<float>()); // range 0 to 2pi
+			float u = Utils::get_random(-1, 1); // range -1 to 1
+			float squ = glm::sqrt(1 - u * u); // avoid computing this twice
+			glm::vec3 offset;
+			offset.x = glm::cos(theta) * squ;
+			offset.y = glm::sin(theta) * squ;
+			offset.z = u;
+
+			// height of triangle, from tan(y/x)=angle
+			// x = 1 since this is unit cone
+			float radius = glm::atan(angle);
+			dir += (offset * radius);
+			glm::vec3 pos = ray.origin;
+			poss.push_back(pos);
+			dirs.push_back(glm::normalize(dir));
 		}
 
 		for (int i = 0; i < poss.size(); i++)

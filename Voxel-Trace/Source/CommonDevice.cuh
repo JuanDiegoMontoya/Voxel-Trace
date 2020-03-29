@@ -63,7 +63,7 @@ inline bool inBound(int a, int b)
 }
 
 template<typename T>
-__device__ __host__ void swap(T& a, T& b)
+__device__ __host__ void cuswap(T& a, T& b)
 {
 	T tmp = std::move(a);
 	a = std::move(b);
@@ -85,4 +85,45 @@ float FresnelSchlick(glm::vec3 i, glm::vec3 n, float Eta, float Power)
 {
 	float F = ((1.0 - Eta) * (1.0 - Eta)) / ((1.0 + Eta) * (1.0 + Eta));
 	return F + (1.0 - F) * glm::pow((1.0 - glm::dot(-i, n)), Power);
+}
+
+// returns an arbitrary vector that is orthogonal to the input
+inline __device__ __host__
+glm::vec3 OrthoVec(glm::vec3 a)
+{
+	// a: choose any component
+	// b: choose nonzero component
+	// c: swap chosen components, negating one
+	// d: set non-swapped component to 0
+	// "smart" (dumb) version of doing this
+	//cuswap(a[0], (a[1] == 0 ? (a[1]=0, a[2]) : (a[2]=0, a[1])));
+	if (a[1] == 0)
+	{
+		return { -a[2], 0, a[0] };
+	}
+	return { -a[1],  a[0] , 0 };
+
+	a[0] *= -1;
+	return a;
+}
+
+inline __device__
+// radius = half width of base of 1 unit high cone
+// angle = slope of cone (radians)
+glm::vec3 RandVecInCone(glm::vec3 dir, float angle, curandState_t& state)
+{
+	// generate random point on unit sphere
+	// https://demonstrations.wolfram.com/RandomPointsOnASphere/
+	float theta = curand_uniform(&state) * 2.f * glm::pi<float>(); // range 0 to 2pi
+	float u = curand_uniform(&state) * 2.f - 1.f; // range -1 to 1
+	float squ = glm::sqrt(1 - u * u); // avoid computing this twice
+	glm::vec3 offset;
+	offset.x = glm::cos(theta) * squ;
+	offset.y = glm::sin(theta) * squ;
+	offset.z = u;
+
+	// height of triangle, from tan(y/x)=angle
+	// x = 1 since this is unit cone
+	float radius = glm::atan(angle);
+	return dir + (offset * radius);
 }

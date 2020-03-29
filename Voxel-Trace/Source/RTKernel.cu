@@ -19,6 +19,7 @@ struct PrimaryRayCaster
 	PrimaryRayCaster(ContextInfo& inf, glm::vec4& v) : info(inf), val(v) {}
 	ContextInfo info;
 	glm::vec4& val;
+	int depthRemaining = 3;
 
 	__device__
 	bool operator()(
@@ -27,6 +28,8 @@ struct PrimaryRayCaster
 		glm::vec3 norm, 
 		glm::vec3 ex)
 	{
+		if (depthRemaining <= 0)
+			return true;
 		if (block)
 		{
 			if (block->alpha == 0)
@@ -37,23 +40,11 @@ struct PrimaryRayCaster
 			glm::vec3 refClr(block->diffuse);
 			if (block->alpha < 1)
 			{
-				glm::vec3 mult(block->diffuse);
-				auto refractCB = [&](
-					glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
-				{
-					if (block && block->alpha == 1)
-					{
-						refClr = block->diffuse * mult;
-						return true;
-					}
-					return false;
-				};
-
-				refracted = true;
-				float eta = 1.f / block->n;
-				glm::vec3 refrDir = glm::normalize(glm::reflect(info.ray.direction, norm));
-				raycastBranchless(info.pWorld, info.worldDim, ex, refrDir, 50.f, refractCB);
-				//return true; // uncomment when recursion is allowed
+				glm::vec3 reflDir = glm::normalize(glm::reflect(info.ray.direction, norm));
+				PrimaryRayCaster castor = *this;
+				castor.depthRemaining--;
+				raycastBranchless(info.pWorld, info.worldDim, ex + reflDir * .001f, reflDir, 50.f, castor);
+				return true; // uncomment when recursion is allowed
 				//refClr = refrDir * .5f + .5f;
 			}
 
@@ -76,22 +67,13 @@ struct PrimaryRayCaster
 
 			for (int i = 0; i < info.numShadowRays; i++)
 			{
-				// https://demonstrations.wolfram.com/RandomPointsOnASphere/
-				glm::vec3 offset;
-				float theta = curand_uniform(&info.state) * 2.f * glm::pi<float>(); // range 0 to 2pi
-				float u = curand_uniform(&info.state) * 2.f - 1.f; // range -1 to 1
-				float sqrt_one_minus_u_squared = glm::sqrt(1 - u * u);
-				offset.x = glm::cos(theta) * sqrt_one_minus_u_squared;
-				offset.y = glm::sin(theta) * sqrt_one_minus_u_squared;
-				offset.z = u;
-				//offset *= curand_uniform(&states[index]); // randomly move down along normal
-
-				glm::vec3 sunPoint(info.sun.position + (offset * info.sun.radius));
-				glm::vec3 rayy = glm::normalize(sunPoint - ex);
-				raycastBranchless(info.pWorld, info.worldDim, ex + .02f * rayy,
-					rayy, glm::min(glm::distance(sunPoint, ex), 50.f), shadowCB);
+				float distToSun = glm::distance(info.sun.position, ex);
+				float angle = glm::atan(info.sun.radius / distToSun);
+				glm::vec3 shadowDir = RandVecInCone(info.sun.position - ex, angle, info.state);
+				raycastBranchless(info.pWorld, info.worldDim, ex + .001f * shadowDir,
+					shadowDir, glm::min(distToSun, 50.f), shadowCB);
+				//block->diffuse = glm::vec3(angle * .5f + .5f);
 			}
-
 
 			//block->diffuse = shadowDir * .5f + .5f;
 			//block->diffuse = ex / 2.f;
@@ -110,8 +92,6 @@ struct PrimaryRayCaster
 			// final color of pixel
 			glm::vec3 FragColor(0);
 			FragColor = diffuse + ambient + specular;
-			if (refracted)
-				FragColor = refClr * glm::max(visibility, .2f);
 			val = glm::vec4(FragColor, 1.f);
 			return true;
 		}

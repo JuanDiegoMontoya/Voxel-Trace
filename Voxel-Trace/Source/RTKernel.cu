@@ -6,6 +6,7 @@
 #include "RTKernel.cuh"
 #include "pick.h"
 
+
 surface<void, 2> screenSurface;
 
 __host__ surface<void, 2>& GetScreenSurface()
@@ -26,7 +27,8 @@ struct PrimaryRayCaster
 		glm::vec3 p, 
 		Voxels::Block* block, 
 		glm::vec3 norm, 
-		glm::vec3 ex)
+		glm::vec3 ex,
+		glm::vec3 nextEx)
 	{
 		if (depthRemaining <= 0)
 			return true;
@@ -35,19 +37,33 @@ struct PrimaryRayCaster
 			if (block->alpha == 0)
 				return false;
 
-			if (block->alpha < 1)
+			if (block->refract == true)
+			{
+				float eta = 1.f / block->n;
+				glm::vec3 refrDir = glm::normalize(glm::refract(info.ray.direction, norm, eta));
+				PrimaryRayCaster castor = *this;
+				castor.depthRemaining--;
+				raycastBranchless(info.pWorld, info.worldDim, nextEx + refrDir * .001f, refrDir, 50.f, castor);
+				//printf("%f\n", eta);
+				val *= glm::vec4(block->diffuse, 1.0f);
+				//val = glm::vec4(refrDir * .5f + .5f, 1.f);
+				return true;
+			}
+
+			if (block->reflect == true)
 			{
 				glm::vec3 reflDir = glm::normalize(glm::reflect(info.ray.direction, norm));
 				PrimaryRayCaster castor = *this;
 				castor.depthRemaining--;
 				raycastBranchless(info.pWorld, info.worldDim, ex + reflDir * .001f, reflDir, 50.f, castor);
+				val *= glm::vec4(block->diffuse, 1.0f);
 				return true; // uncomment when recursion is allowed
 			}
 
 			float visibility = 1;
 			//int numShadowRays = numShadowRays;
 			auto shadowCB = [&visibility, this](
-				glm::vec3 p, Voxels::Block* block, glm::vec3 norm, glm::vec3)->bool
+				glm::vec3 p, Voxels::Block* block, glm::vec3, glm::vec3, glm::vec3)->bool
 			{
 				if (block && block->alpha == 1)
 				{

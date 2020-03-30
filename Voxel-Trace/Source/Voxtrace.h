@@ -18,7 +18,9 @@ namespace Voxels
 			: diffuse(d), alpha(a), n(in) {}
 		glm::vec3 diffuse = { 1, 1, 1 };
 		float alpha = 0;
-		float n = 1.5; // index of refraction
+		float n = 1.5f; // index of refraction
+		bool reflect = false;
+		bool refract = false;
 	};
 
 	struct Light

@@ -121,12 +121,18 @@ namespace Voxels
 		for (int i = 0; i < numBlocks; i++)
 		{
 			blocks[i].alpha = 0;
+			blocks[i].n = 1.5f;
 			auto pos = expand(i, chunkDim.x, chunkDim.y);
 			//if (glm::all(glm::lessThan(pos, { 5, 5, 5 })))
 			{
 				blocks[i].alpha = rand() % 100 > 80 ? 1 : 0;
 				if (rand() % 100 > 95)
-					blocks[i].alpha = .5f;
+					blocks[i].reflect = true;
+				if (rand() % 100 > 90)
+				{
+					blocks[i].refract = true;
+					blocks[i].reflect = false;
+				}
 				//blocks[i].diffuse = { 1, 0, 0 };
 			}
 			blocks[i].diffuse = Utils::get_random_vec3_r(0, 1);

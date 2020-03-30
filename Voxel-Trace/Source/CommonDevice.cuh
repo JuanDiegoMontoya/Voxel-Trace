@@ -95,7 +95,7 @@ glm::vec3 OrthoVec(const glm::vec3& a)
 	// b: choose nonzero component
 	// c: swap chosen components, negating one
 	// d: set non-swapped component to 0
-	// "smart" (dumb) version of doing this
+	// "smart" (dumb) way of doing this
 	//cuswap(a[0], (a[1] == 0 ? (a[1]=0, a[2]) : (a[2]=0, a[1])));
 	if (a[1] == 0)
 	{

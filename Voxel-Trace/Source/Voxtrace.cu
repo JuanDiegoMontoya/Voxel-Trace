@@ -34,8 +34,8 @@ namespace Voxels
 		// screen info
 		//glm::vec2 screenDim = { 500, 265 };
 		//glm::vec2 screenDim = { 1920, 1080 }; // 1080p
-		//glm::vec2 screenDim = { 1280, 720 };  // 720p
-		glm::vec2 screenDim = { 853, 480 };   // 480p
+		glm::vec2 screenDim = { 1280, 720 };  // 720p
+		//glm::vec2 screenDim = { 853, 480 };   // 480p
 		//glm::vec2 screenDim = { 125, 65 };
 		TraceInfo info;
 
@@ -206,7 +206,7 @@ namespace Voxels
 		//		dirs.push_back(ray.direction);
 		//	}
 		//}
-		float angle = glm::atan(30);
+		float angle = glm::atan(100);
 		Ray ray = info.camera.makeRay({ 0, 0 });
 		for (int i = 0; i < 1000; i++)
 		{

@@ -43,7 +43,7 @@ struct PrimaryRayCaster
 				glm::vec3 refrDir = glm::normalize(glm::refract(info.ray.direction, norm, eta));
 				PrimaryRayCaster castor = *this;
 				castor.depthRemaining--;
-				raycastBranchless(info.pWorld, info.worldDim, nextEx + refrDir * .001f, refrDir, 50.f, castor);
+				raycastBranchless(info.pWorld, info.worldDim, nextEx + refrDir * .001f, refrDir, 200.f, castor);
 				//printf("%f\n", eta);
 				val *= glm::vec4(block->diffuse, 1.0f);
 				//val = glm::vec4(refrDir * .5f + .5f, 1.f);
@@ -55,7 +55,7 @@ struct PrimaryRayCaster
 				glm::vec3 reflDir = glm::normalize(glm::reflect(info.ray.direction, norm));
 				PrimaryRayCaster castor = *this;
 				castor.depthRemaining--;
-				raycastBranchless(info.pWorld, info.worldDim, ex + reflDir * .001f, reflDir, 50.f, castor);
+				raycastBranchless(info.pWorld, info.worldDim, ex + reflDir * .001f, reflDir, 200.f, castor);
 				val *= glm::vec4(block->diffuse, 1.0f);
 				return true; // uncomment when recursion is allowed
 			}
@@ -84,7 +84,7 @@ struct PrimaryRayCaster
 				glm::vec3 shadowDir = glm::normalize(
 					RandVecInCone(glm::normalize(info.sun.position - ex), angle, info.state));
 				raycastBranchless(info.pWorld, info.worldDim, ex + .001f * shadowDir,
-					shadowDir, glm::min(distToSun, 50.f), shadowCB);
+					shadowDir, glm::min(distToSun, 200.f), shadowCB);
 				//block->diffuse = glm::vec3(angle * .5f + .5f);
 			}
 
@@ -138,7 +138,13 @@ __global__ void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 		glm::vec4 val{ .53f, .81f, .92f, 1 };
 		PrimaryRayCaster primRay(
 			ContextInfo(pWorld, worldDim, numShadowRays, sun, states[index], ray), val);
-		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 50, primRay);
+		raycastBranchless(pWorld, worldDim, ray.origin, ray.direction, 200, primRay);
+
+		
+		// really bad TAA approximation
+		glm::vec4 old;
+		surf2Dread(&old, screenSurface, imgPos.x * sizeof(old), imgSize.y - imgPos.y - 1);
+		val = glm::mix(old, val, .7f);
 
 		// write final pixel value
 		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgSize.y - imgPos.y - 1);

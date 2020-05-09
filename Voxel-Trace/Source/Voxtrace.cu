@@ -38,6 +38,7 @@ namespace Voxels
 		//glm::vec2 screenDim = { 853, 480 };   // 480p
 		//glm::vec2 screenDim = { 125, 65 };
 		TraceInfo info;
+		float fovDeg = 60.0f;
 
 		// rendering shiz
 		VBO* vbo = nullptr;
@@ -63,6 +64,8 @@ namespace Voxels
 
 		info.imgSize = screenDim;
 		info.numShadowRays = 10;
+		auto c = Renderer::GetPipeline()->GetCamera(0);
+		c->GenProjection(fovDeg);
 	}
 
 	void Shutdown()
@@ -143,7 +146,7 @@ namespace Voxels
 	{
 		auto c = Renderer::GetPipeline()->GetCamera(0);
 		info.camera = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
-			glm::vec3(0, 1, 0), glm::radians(30.f), screenDim.x / screenDim.y);
+			glm::vec3(0, 1, 0), glm::radians(fovDeg / 2.0f), screenDim.x / screenDim.y);
 
 
 		// ray trace her
@@ -194,41 +197,43 @@ namespace Voxels
 		std::vector<glm::vec3> poss, dirs, tClrs, bClrs;
 
 		glm::vec2 imgSize(screenDim);
-		//for (int x = 0; x < imgSize.x; x++)
-		//{
-		//	for (int y = 0; y < imgSize.y; y++)
-		//	{
-		//		glm::vec2 screenCoord(
-		//			(2.0f * x) / imgSize.x - 1.0f,
-		//			(-2.0f * y) / imgSize.y + 1.0f);
-		//		Ray ray = info.camera.makeRay(screenCoord);
-		//		poss.push_back(ray.origin);
-		//		dirs.push_back(ray.direction);
-		//	}
-		//}
-		float angle = glm::atan(100);
-		Ray ray = info.camera.makeRay({ 0, 0 });
-		for (int i = 0; i < 1000; i++)
+		for (int x = 0; x < imgSize.x; x++)
 		{
-			glm::vec3 dir = ray.direction;
-			// generate random point on unit sphere
-			float theta = Utils::get_random(0, glm::two_pi<float>()); // range 0 to 2pi
-			float u = Utils::get_random(-1, 1); // range -1 to 1
-			float squ = glm::sqrt(1 - u * u); // avoid computing this twice
-			glm::vec3 offset;
-			offset.x = glm::cos(theta) * squ;
-			offset.y = glm::sin(theta) * squ;
-			offset.z = u;
-
-			// radius of cone, from tan(radius/h)=angle
-			// x = 1 since this is unit cone
-			float radius = glm::atan(angle);
-			dir += (offset * radius);
-
-			glm::vec3 pos = ray.origin;
-			poss.push_back(pos);
-			dirs.push_back(glm::normalize(dir));
+			for (int y = 0; y < imgSize.y; y++)
+			{
+				glm::vec2 screenCoord(
+					(2.0f * x) / imgSize.x - 1.0f,
+					(-2.0f * y) / imgSize.y + 1.0f);
+				Ray ray = info.camera.makeRay(screenCoord);
+				poss.push_back(ray.origin);
+				dirs.push_back(ray.direction);
+			}
 		}
+
+		// debug angle thing
+		//float angle = glm::atan(100);
+		//Ray ray = info.camera.makeRay({ 0, 0 });
+		//for (int i = 0; i < 1000; i++)
+		//{
+		//	glm::vec3 dir = ray.direction;
+		//	// generate random point on unit sphere
+		//	float theta = Utils::get_random(0, glm::two_pi<float>()); // range 0 to 2pi
+		//	float u = Utils::get_random(-1, 1); // range -1 to 1
+		//	float squ = glm::sqrt(1 - u * u); // avoid computing this twice
+		//	glm::vec3 offset;
+		//	offset.x = glm::cos(theta) * squ;
+		//	offset.y = glm::sin(theta) * squ;
+		//	offset.z = u;
+
+		//	// radius of cone, from tan(radius/h)=angle
+		//	// x = 1 since this is unit cone
+		//	float radius = glm::atan(angle);
+		//	dir += (offset * radius);
+
+		//	glm::vec3 pos = ray.origin;
+		//	poss.push_back(pos);
+		//	dirs.push_back(glm::normalize(dir));
+		//}
 
 		for (int i = 0; i < poss.size(); i++)
 		{

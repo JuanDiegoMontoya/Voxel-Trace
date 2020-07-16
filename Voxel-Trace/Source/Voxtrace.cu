@@ -34,8 +34,8 @@ namespace Voxels
 		// screen info
 		//glm::vec2 screenDim = { 500, 265 };
 		//glm::vec2 screenDim = { 1920, 1080 }; // 1080p
-		glm::vec2 screenDim = { 1280, 720 };  // 720p
-		//glm::vec2 screenDim = { 853, 480 };   // 480p
+		//glm::vec2 screenDim = { 1280, 720 };  // 720p
+		glm::vec2 screenDim = { 853, 480 };   // 480p
 		//glm::vec2 screenDim = { 125, 65 };
 		TraceInfo info;
 		float fovDeg = 60.0f;
@@ -148,6 +148,9 @@ namespace Voxels
 		info.camera = PerspectiveRayCamera(c->GetPos(), c->GetPos() + c->GetDir(), 
 			glm::vec3(0, 1, 0), glm::radians(fovDeg / 2.0f), screenDim.x / screenDim.y);
 
+		static Camera oldCam = *Renderer::GetPipeline()->GetCamera(0);
+		bool dirtyCam = c->GetDir() != oldCam.GetDir() || c->GetPos() != oldCam.GetPos();
+		oldCam = *Renderer::GetPipeline()->GetCamera(0);
 
 		// ray trace her
 		{
@@ -158,7 +161,7 @@ namespace Voxels
 			// passing the info struct in creates crashes when calling info.camera.makeRay
 			epicRayTracer<<<KernelNumBlocks, KernelBlockSize>>>(
 				blocks, chunkDim, info.camera, info.numShadowRays, info.imgSize,
-				chunkDim, *Renderer::Sun(), states);
+				chunkDim, *Renderer::Sun(), states, dirtyCam);
 			cudaDeviceSynchronize();
 
 			cudaCheck(cudaGraphicsUnmapResources(1, &imageResource, 0));
@@ -169,7 +172,7 @@ namespace Voxels
 		s->Use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, screenTexture);
-		s->setInt("tex", 0);
+		s->setInt("uTex", 0);
 		vao->Bind();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		vao->Unbind();

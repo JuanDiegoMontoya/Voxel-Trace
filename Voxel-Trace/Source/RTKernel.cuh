@@ -2,7 +2,7 @@
 
 __global__ void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 	PerspectiveRayCamera camera, int numShadowRays, glm::vec2 imgSize,
-	glm::vec3 chunkDim, Voxels::Light sun, curandState_t* states);
+	glm::vec3 chunkDim, Voxels::Light sun, curandState_t* states, bool dityCamera = true);
 
 __host__ surface<void, 2>& GetScreenSurface();
 

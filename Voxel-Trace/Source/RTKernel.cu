@@ -116,7 +116,7 @@ struct PrimaryRayCaster
 
 __global__ void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 	PerspectiveRayCamera camera, int numShadowRays, glm::vec2 imgSize,
-	glm::vec3 chunkDim, Voxels::Light sun, curandState_t* states)
+	glm::vec3 chunkDim, Voxels::Light sun, curandState_t* states, bool dirtyCamera)
 {
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -142,9 +142,12 @@ __global__ void epicRayTracer(Voxels::Block* pWorld, glm::ivec3 worldDim,
 
 		
 		// really bad TAA approximation
-		//glm::vec4 old;
-		//surf2Dread(&old, screenSurface, imgPos.x * sizeof(old), imgSize.y - imgPos.y - 1);
-		//val = glm::mix(old, val, .7f);
+		if (dirtyCamera == false)
+		{
+			glm::vec4 old;
+			surf2Dread(&old, screenSurface, imgPos.x * sizeof(old), imgSize.y - imgPos.y - 1);
+			val = glm::mix(old, val, .01f);
+		}
 
 		// write final pixel value
 		surf2Dwrite(val, screenSurface, imgPos.x * sizeof(val), imgSize.y - imgPos.y - 1);

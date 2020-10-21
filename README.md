@@ -11,3 +11,6 @@ The trello page for this project [can be found here.](https://trello.com/b/0p6vO
 ## Gallery
 Soft shadows
 ![Noisy soft shadows](https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v01.png "Soft shadows")
+
+Softer shadows
+![Not noisy soft shadows]("https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v02.png")

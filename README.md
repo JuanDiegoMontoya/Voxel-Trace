@@ -13,4 +13,4 @@ Soft shadows
 ![Noisy soft shadows](https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v01.png "Soft shadows")
 
 Softer shadows
-![Not noisy soft shadows]("https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v02.png")
+![Not noisy soft shadows](https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v02.png)

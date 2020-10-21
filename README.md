@@ -9,8 +9,8 @@ Voxels are used for two principal reasons:
 The trello page for this project [can be found here.](https://trello.com/b/0p6vO9iV/voxel-tracer)
 
 ## Gallery
+Softer shadows (temporal accumulation)
+![Not noisy soft shadows](https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v02.png)
+
 Soft shadows
 ![Noisy soft shadows](https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v01.png "Soft shadows")
-
-Softer shadows
-![Not noisy soft shadows](https://github.com/JuanDiegoMontoya/Voxel-Trace/blob/master/Images/cubes_v02.png)
